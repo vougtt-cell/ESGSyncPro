@@ -940,8 +940,11 @@
             });
 
             try {
-                await loadCompareList();
-                await loadArticlesList();
+                const authOk = await checkAuth();
+                if (authOk) {
+                    await loadCompareList();
+                    await loadArticlesList();
+                }
             } catch (_) {
                 showErr(t('notConnected'));
             }
