@@ -480,7 +480,8 @@ function getIndustryEsgComment(industry, riskLevel, language) {
  */
 async function selectTextVariantsWithAI(level, language) {
     try {
-        const response = await fetch('http://localhost:3010/api/esg-variants', {
+        const apiBaseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3010';
+        const response = await fetch(apiBaseUrl + '/api/esg-variants', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -554,7 +555,8 @@ async function getCommentRecommendation(comment, language) {
             return language === 'pl' ? 'Brak rekomendacji dla tej wiadomości.' : 'There are no recommendations for this message.';
         }
         
-        const response = await fetch('http://localhost:3010/api/comment-recommendation', {
+        const apiBaseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3010';
+        const response = await fetch(apiBaseUrl + '/api/comment-recommendation', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -912,12 +914,7 @@ async function generateEsgMetricsSection(documentVerifications, language) {
         if (documentsBySphere[sphere].length > 0) {
             try {
                 // Use relative URL or detect from current location
-                let apiBaseUrl = 'http://localhost:3001'; // Default
-                if (typeof window !== 'undefined' && window.location) {
-                    apiBaseUrl = window.location.origin.includes('localhost') 
-                        ? 'http://localhost:3001' 
-                        : window.location.origin;
-                }
+                const apiBaseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3010';
                 const response = await fetch(`${apiBaseUrl}/api/calculate-esg-metrics`, {
                     method: 'POST',
                     headers: {

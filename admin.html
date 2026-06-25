@@ -331,7 +331,7 @@
                     exportNoData: 'No data to export.',
                     exportSuccess: 'PDF saved.',
                     exportError: 'Export error: ',
-                    notConnected: 'Unable to connect to API. Open admin panel from same host as server, e.g. http://localhost:3010/admin.html',
+                    notConnected: 'Unable to connect to API. Make sure you are accessing the admin panel from the same domain as the server.',
                     loginRedirect: 'admin-login.html',
                     pdfTitle: 'Companies for comparison',
                     pdfDateLabel: 'Date: ',
@@ -399,7 +399,7 @@
                     exportNoData: 'Brak danych do eksportu.',
                     exportSuccess: 'PDF zapisany.',
                     exportError: 'Blad eksportu: ',
-                    notConnected: 'Nie mozna polaczyc z API. Otworz panel z tego samego hosta co serwer, np. http://localhost:3010/admin.html',
+                    notConnected: 'Nie mozna polaczyc z API. Upewnij sie, ze otwierasz panel administracyjny z tej samej domeny co serwer.',
                     loginRedirect: 'admin-login.html',
                     pdfTitle: 'Firmy do porownania',
                     pdfDateLabel: 'Data: ',
@@ -941,6 +941,7 @@
 
             try {
                 await loadCompareList();
+                await loadArticlesList();
             } catch (_) {
                 showErr(t('notConnected'));
             }

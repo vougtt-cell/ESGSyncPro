@@ -26,7 +26,8 @@
         async function selectTextVariantsWithAI(level, language) {
             try {
                 // Try to use backend API first
-                const response = await fetch('http://localhost:3010/api/esg-variants', {
+                const apiBaseUrl = window.location.origin;
+                const response = await fetch(apiBaseUrl + '/api/esg-variants', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -115,7 +116,8 @@
          */
         async function generateESGContent(level, language, companyName, industry) {
             try {
-                const response = await fetch('http://localhost:3010/api/generate-esg-content', {
+                const apiBaseUrl = window.location.origin;
+                const response = await fetch(apiBaseUrl + '/api/generate-esg-content', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -150,7 +152,8 @@
         async function generatePDFContent(scores, language, clientDetails) {
             try {
                 const level = scores.level || 'intermediate';
-                const response = await fetch('http://localhost:3010/api/generate-pdf-content', {
+                const apiBaseUrl = window.location.origin;
+                const response = await fetch(apiBaseUrl + '/api/generate-pdf-content', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -184,7 +187,8 @@
          */
         async function analyzeESGData(data, level, language) {
             try {
-                const response = await fetch('http://localhost:3010/api/analyze-esg-data', {
+                const apiBaseUrl = window.location.origin;
+                const response = await fetch(apiBaseUrl + '/api/analyze-esg-data', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -222,7 +226,8 @@
          */
         async function checkBackendHealth() {
             try {
-                const response = await fetch('http://localhost:3010/api/health');
+                const apiBaseUrl = window.location.origin;
+                const response = await fetch(apiBaseUrl + '/api/health');
                 if (response.ok) {
                     const data = await response.json();
                     return data;
@@ -556,9 +561,7 @@
                     });
 
                     // Determine API base URL
-                    const apiBaseUrl = window.API_BASE_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                        ? 'http://localhost:3010'
-                        : window.location.origin);
+                    const apiBaseUrl = window.location.origin;
 
                     // Send to backend for analysis
                     // NOTE: We do NOT send sessionId or benchmarkId to avoid saving to database
@@ -5078,7 +5081,8 @@
                     console.log('🔍 [PDF] Calling document verification API');
                     let documentVerifications = [];
                     try {
-                        const verificationResponse = await fetch('http://localhost:3010/api/verify-documents', {
+                        const apiBaseUrl = window.location.origin;
+                        const verificationResponse = await fetch(apiBaseUrl + '/api/verify-documents', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
