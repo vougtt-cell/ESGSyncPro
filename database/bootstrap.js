@@ -70,6 +70,39 @@ async function ensureArticlesTable() {
     await query('CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status)');
 }
 
+async function ensureCompanyBenchmarksTable() {
+    await query(`
+        CREATE TABLE IF NOT EXISTS company_benchmarks (
+            id SERIAL PRIMARY KEY,
+            company_name VARCHAR(255) NOT NULL,
+            industry VARCHAR(100) NOT NULL,
+            scope1 DECIMAL(15,3),
+            ren DECIMAL(5,2),
+            paygap DECIMAL(5,2),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(company_name, industry)
+        )
+    `);
+    await query('CREATE INDEX IF NOT EXISTS idx_company_benchmarks_industry ON company_benchmarks(industry)');
+    await query('CREATE INDEX IF NOT EXISTS idx_company_benchmarks_company_name ON company_benchmarks(company_name)');
+}
+
+async function ensureCompaniesTable() {
+    await query(`
+        CREATE TABLE IF NOT EXISTS companies (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            industry VARCHAR(100),
+            esg_level VARCHAR(20) CHECK (esg_level IN ('beginner', 'intermediate', 'advanced')),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await query('CREATE INDEX IF NOT EXISTS idx_companies_industry ON companies(industry)');
+    await query('CREATE INDEX IF NOT EXISTS idx_companies_esg_level ON companies(esg_level)');
+}
+
 async function bootstrapDatabase() {
     await ensureAppUsersTable();
     await ensureAdminUsersTable();
@@ -77,10 +110,14 @@ async function bootstrapDatabase() {
     await ensureUserDataUserIdColumn();
     await ensureSurveyComparisonCompaniesTable();
     await ensureArticlesTable();
+    await ensureCompanyBenchmarksTable();
+    await ensureCompaniesTable();
     await ensureDefaultAdmin();
     await ensureDefaultAppUser();
     await ensureSampleSurveyCompanies();
     await ensureSampleArticles();
+    await ensureSampleCompanyBenchmarks();
+    await ensureSampleCompanies();
 }
 
 async function ensureAppUsersTable() {
@@ -166,21 +203,60 @@ async function ensureSampleSurveyCompanies() {
     const count = await query('SELECT COUNT(*) AS n FROM survey_comparison_companies');
     if (parseInt(count.rows[0].n, 10) === 0) {
         const benchmarks = [
+            // Construction - 5 companies
             { company_name: 'Skanska AB', industry: 'construction', scope1: 1200, ren: 42, paygap: 8 },
             { company_name: 'Essential Bouygues Construction', industry: 'construction', scope1: 2100, ren: 28, paygap: 12 },
             { company_name: 'Hochtief Group', industry: 'construction', scope1: 1800, ren: 35, paygap: 10 },
             { company_name: 'Budimex', industry: 'construction', scope1: 950, ren: 22, paygap: 15 },
+            { company_name: 'Vinci Construction', industry: 'construction', scope1: 1650, ren: 31, paygap: 11 },
+            // Fintech - 5 companies
             { company_name: 'PayPal', industry: 'fintech', scope1: 50, ren: 85, paygap: 5 },
             { company_name: 'Shopify', industry: 'fintech', scope1: 30, ren: 100, paygap: 3 },
+            { company_name: 'Stripe', industry: 'fintech', scope1: 40, ren: 92, paygap: 4 },
+            { company_name: 'Square', industry: 'fintech', scope1: 35, ren: 88, paygap: 6 },
+            { company_name: 'Adyen', industry: 'fintech', scope1: 45, ren: 78, paygap: 7 },
+            // IT - 5 companies
             { company_name: 'NVIDIA', industry: 'it', scope1: 200, ren: 60, paygap: 8 },
             { company_name: 'Microsoft', industry: 'it', scope1: 450, ren: 75, paygap: 6 },
             { company_name: 'Apple', industry: 'it', scope1: 380, ren: 68, paygap: 7 },
+            { company_name: 'Google', industry: 'it', scope1: 320, ren: 65, paygap: 9 },
+            { company_name: 'Meta', industry: 'it', scope1: 290, ren: 58, paygap: 10 },
+            // Retail - 5 companies
             { company_name: 'Amazon', industry: 'retail', scope1: 520, ren: 45, paygap: 12 },
             { company_name: 'IKEA', industry: 'retail', scope1: 280, ren: 55, paygap: 9 },
+            { company_name: 'Walmart', industry: 'retail', scope1: 680, ren: 38, paygap: 14 },
+            { company_name: 'Zara', industry: 'retail', scope1: 310, ren: 48, paygap: 11 },
+            { company_name: 'H&M', industry: 'retail', scope1: 340, ren: 42, paygap: 13 },
+            // Manufacturing - 5 companies
             { company_name: 'Tesla', industry: 'manufacturing', scope1: 180, ren: 72, paygap: 11 },
             { company_name: 'Volkswagen', industry: 'manufacturing', scope1: 890, ren: 38, paygap: 14 },
+            { company_name: 'Toyota', industry: 'manufacturing', scope1: 720, ren: 45, paygap: 12 },
+            { company_name: 'Siemens', industry: 'manufacturing', scope1: 540, ren: 52, paygap: 10 },
+            { company_name: 'General Electric', industry: 'manufacturing', scope1: 610, ren: 48, paygap: 13 },
+            // Logistics - 5 companies
             { company_name: 'DHL', industry: 'logistics', scope1: 620, ren: 48, paygap: 10 },
-            { company_name: 'Maersk', industry: 'transport', scope1: 750, ren: 40, paygap: 13 }
+            { company_name: 'FedEx', industry: 'logistics', scope1: 580, ren: 52, paygap: 9 },
+            { company_name: 'UPS', industry: 'logistics', scope1: 550, ren: 55, paygap: 8 },
+            { company_name: 'DB Schenker', industry: 'logistics', scope1: 490, ren: 45, paygap: 11 },
+            { company_name: 'Kuehne+Nagel', industry: 'logistics', scope1: 530, ren: 42, paygap: 12 },
+            // Transport - 5 companies
+            { company_name: 'Maersk', industry: 'transport', scope1: 750, ren: 40, paygap: 13 },
+            { company_name: 'Delta Air Lines', industry: 'transport', scope1: 890, ren: 35, paygap: 15 },
+            { company_name: 'Lufthansa', industry: 'transport', scope1: 820, ren: 38, paygap: 14 },
+            { company_name: 'Ryanair', industry: 'transport', scope1: 680, ren: 32, paygap: 16 },
+            { company_name: 'Union Pacific', industry: 'transport', scope1: 920, ren: 28, paygap: 17 },
+            // Energy - 5 companies
+            { company_name: 'Ørsted', industry: 'energy', scope1: 120, ren: 95, paygap: 6 },
+            { company_name: 'NextEra Energy', industry: 'energy', scope1: 180, ren: 88, paygap: 7 },
+            { company_name: 'Iberdrola', industry: 'energy', scope1: 220, ren: 82, paygap: 8 },
+            { company_name: 'EDF', industry: 'energy', scope1: 450, ren: 65, paygap: 10 },
+            { company_name: 'Enel', industry: 'energy', scope1: 380, ren: 58, paygap: 11 },
+            // Services - 5 companies
+            { company_name: 'Accenture', industry: 'services', scope1: 85, ren: 72, paygap: 9 },
+            { company_name: 'Deloitte', industry: 'services', scope1: 95, ren: 68, paygap: 10 },
+            { company_name: 'PwC', industry: 'services', scope1: 90, ren: 65, paygap: 11 },
+            { company_name: 'EY', industry: 'services', scope1: 88, ren: 62, paygap: 12 },
+            { company_name: 'KPMG', industry: 'services', scope1: 92, ren: 60, paygap: 13 }
         ];
         for (const b of benchmarks) {
             await query(
@@ -253,11 +329,135 @@ async function ensureSampleArticles() {
     }
 }
 
+async function ensureSampleCompanyBenchmarks() {
+    const count = await query('SELECT COUNT(*) AS n FROM company_benchmarks');
+    if (parseInt(count.rows[0].n, 10) === 0) {
+        const benchmarks = [
+            { company_name: 'Skanska AB', industry: 'construction', scope1: 1200, ren: 42, paygap: 8 },
+            { company_name: 'Essential Bouygues Construction', industry: 'construction', scope1: 2100, ren: 28, paygap: 12 },
+            { company_name: 'Hochtief Group', industry: 'construction', scope1: 1800, ren: 35, paygap: 10 },
+            { company_name: 'Budimex', industry: 'construction', scope1: 950, ren: 22, paygap: 15 },
+            { company_name: 'Vinci Construction', industry: 'construction', scope1: 1650, ren: 31, paygap: 11 },
+            { company_name: 'PayPal', industry: 'fintech', scope1: 50, ren: 85, paygap: 5 },
+            { company_name: 'Shopify', industry: 'fintech', scope1: 30, ren: 100, paygap: 3 },
+            { company_name: 'Stripe', industry: 'fintech', scope1: 40, ren: 92, paygap: 4 },
+            { company_name: 'Square', industry: 'fintech', scope1: 35, ren: 88, paygap: 6 },
+            { company_name: 'Adyen', industry: 'fintech', scope1: 45, ren: 78, paygap: 7 },
+            { company_name: 'NVIDIA', industry: 'it', scope1: 200, ren: 60, paygap: 8 },
+            { company_name: 'Microsoft', industry: 'it', scope1: 450, ren: 75, paygap: 6 },
+            { company_name: 'Apple', industry: 'it', scope1: 380, ren: 68, paygap: 7 },
+            { company_name: 'Google', industry: 'it', scope1: 320, ren: 65, paygap: 9 },
+            { company_name: 'Meta', industry: 'it', scope1: 290, ren: 58, paygap: 10 },
+            { company_name: 'Amazon', industry: 'retail', scope1: 520, ren: 45, paygap: 12 },
+            { company_name: 'IKEA', industry: 'retail', scope1: 280, ren: 55, paygap: 9 },
+            { company_name: 'Walmart', industry: 'retail', scope1: 680, ren: 38, paygap: 14 },
+            { company_name: 'Zara', industry: 'retail', scope1: 310, ren: 48, paygap: 11 },
+            { company_name: 'H&M', industry: 'retail', scope1: 340, ren: 42, paygap: 13 },
+            { company_name: 'Tesla', industry: 'manufacturing', scope1: 180, ren: 72, paygap: 11 },
+            { company_name: 'Volkswagen', industry: 'manufacturing', scope1: 890, ren: 38, paygap: 14 },
+            { company_name: 'Toyota', industry: 'manufacturing', scope1: 720, ren: 45, paygap: 12 },
+            { company_name: 'Siemens', industry: 'manufacturing', scope1: 540, ren: 52, paygap: 10 },
+            { company_name: 'General Electric', industry: 'manufacturing', scope1: 610, ren: 48, paygap: 13 },
+            { company_name: 'DHL', industry: 'logistics', scope1: 620, ren: 48, paygap: 10 },
+            { company_name: 'FedEx', industry: 'logistics', scope1: 580, ren: 52, paygap: 9 },
+            { company_name: 'UPS', industry: 'logistics', scope1: 550, ren: 55, paygap: 8 },
+            { company_name: 'DB Schenker', industry: 'logistics', scope1: 490, ren: 45, paygap: 11 },
+            { company_name: 'Kuehne+Nagel', industry: 'logistics', scope1: 530, ren: 42, paygap: 12 },
+            { company_name: 'Maersk', industry: 'transport', scope1: 750, ren: 40, paygap: 13 },
+            { company_name: 'Delta Air Lines', industry: 'transport', scope1: 890, ren: 35, paygap: 15 },
+            { company_name: 'Lufthansa', industry: 'transport', scope1: 820, ren: 38, paygap: 14 },
+            { company_name: 'Ryanair', industry: 'transport', scope1: 680, ren: 32, paygap: 16 },
+            { company_name: 'Union Pacific', industry: 'transport', scope1: 920, ren: 28, paygap: 17 },
+            { company_name: 'Ørsted', industry: 'energy', scope1: 120, ren: 95, paygap: 6 },
+            { company_name: 'NextEra Energy', industry: 'energy', scope1: 180, ren: 88, paygap: 7 },
+            { company_name: 'Iberdrola', industry: 'energy', scope1: 220, ren: 82, paygap: 8 },
+            { company_name: 'EDF', industry: 'energy', scope1: 450, ren: 65, paygap: 10 },
+            { company_name: 'Enel', industry: 'energy', scope1: 380, ren: 58, paygap: 11 },
+            { company_name: 'Accenture', industry: 'services', scope1: 85, ren: 72, paygap: 9 },
+            { company_name: 'Deloitte', industry: 'services', scope1: 95, ren: 68, paygap: 10 },
+            { company_name: 'PwC', industry: 'services', scope1: 90, ren: 65, paygap: 11 },
+            { company_name: 'EY', industry: 'services', scope1: 88, ren: 62, paygap: 12 },
+            { company_name: 'KPMG', industry: 'services', scope1: 92, ren: 60, paygap: 13 }
+        ];
+        for (const b of benchmarks) {
+            await query(
+                `INSERT INTO company_benchmarks (company_name, industry, scope1, ren, paygap)
+                 VALUES ($1, $2, $3, $4, $5)
+                 ON CONFLICT (company_name, industry) DO NOTHING`,
+                [b.company_name, b.industry, b.scope1, b.ren, b.paygap]
+            );
+        }
+        console.log(`Created ${benchmarks.length} sample company benchmarks`);
+    }
+}
+
+async function ensureSampleCompanies() {
+    const count = await query('SELECT COUNT(*) AS n FROM companies');
+    if (parseInt(count.rows[0].n, 10) === 0) {
+        const companies = [
+            { name: 'Skanska AB', industry: 'construction', esg_level: 'advanced' },
+            { name: 'Essential Bouygues Construction', industry: 'construction', esg_level: 'intermediate' },
+            { name: 'Hochtief Group', industry: 'construction', esg_level: 'intermediate' },
+            { name: 'Budimex', industry: 'construction', esg_level: 'beginner' },
+            { name: 'Vinci Construction', industry: 'construction', esg_level: 'intermediate' },
+            { name: 'PayPal', industry: 'fintech', esg_level: 'advanced' },
+            { name: 'Shopify', industry: 'fintech', esg_level: 'advanced' },
+            { name: 'Stripe', industry: 'fintech', esg_level: 'advanced' },
+            { name: 'Square', industry: 'fintech', esg_level: 'advanced' },
+            { name: 'Adyen', industry: 'fintech', esg_level: 'intermediate' },
+            { name: 'NVIDIA', industry: 'it', esg_level: 'intermediate' },
+            { name: 'Microsoft', industry: 'it', esg_level: 'advanced' },
+            { name: 'Apple', industry: 'it', esg_level: 'advanced' },
+            { name: 'Google', industry: 'it', esg_level: 'advanced' },
+            { name: 'Meta', industry: 'it', esg_level: 'intermediate' },
+            { name: 'Amazon', industry: 'retail', esg_level: 'intermediate' },
+            { name: 'IKEA', industry: 'retail', esg_level: 'advanced' },
+            { name: 'Walmart', industry: 'retail', esg_level: 'beginner' },
+            { name: 'Zara', industry: 'retail', esg_level: 'intermediate' },
+            { name: 'H&M', industry: 'retail', esg_level: 'intermediate' },
+            { name: 'Tesla', industry: 'manufacturing', esg_level: 'advanced' },
+            { name: 'Volkswagen', industry: 'manufacturing', esg_level: 'beginner' },
+            { name: 'Toyota', industry: 'manufacturing', esg_level: 'intermediate' },
+            { name: 'Siemens', industry: 'manufacturing', esg_level: 'intermediate' },
+            { name: 'General Electric', industry: 'manufacturing', esg_level: 'intermediate' },
+            { name: 'DHL', industry: 'logistics', esg_level: 'intermediate' },
+            { name: 'FedEx', industry: 'logistics', esg_level: 'intermediate' },
+            { name: 'UPS', industry: 'logistics', esg_level: 'intermediate' },
+            { name: 'DB Schenker', industry: 'logistics', esg_level: 'intermediate' },
+            { name: 'Kuehne+Nagel', industry: 'logistics', esg_level: 'intermediate' },
+            { name: 'Maersk', industry: 'transport', esg_level: 'intermediate' },
+            { name: 'Delta Air Lines', industry: 'transport', esg_level: 'beginner' },
+            { name: 'Lufthansa', industry: 'transport', esg_level: 'beginner' },
+            { name: 'Ryanair', industry: 'transport', esg_level: 'beginner' },
+            { name: 'Union Pacific', industry: 'transport', esg_level: 'beginner' },
+            { name: 'Ørsted', industry: 'energy', esg_level: 'advanced' },
+            { name: 'NextEra Energy', industry: 'energy', esg_level: 'advanced' },
+            { name: 'Iberdrola', industry: 'energy', esg_level: 'advanced' },
+            { name: 'EDF', industry: 'energy', esg_level: 'intermediate' },
+            { name: 'Enel', industry: 'energy', esg_level: 'intermediate' },
+            { name: 'Accenture', industry: 'services', esg_level: 'intermediate' },
+            { name: 'Deloitte', industry: 'services', esg_level: 'intermediate' },
+            { name: 'PwC', industry: 'services', esg_level: 'intermediate' },
+            { name: 'EY', industry: 'services', esg_level: 'intermediate' },
+            { name: 'KPMG', industry: 'services', esg_level: 'intermediate' }
+        ];
+        for (const c of companies) {
+            await query(
+                `INSERT INTO companies (name, industry, esg_level) VALUES ($1, $2, $3)`,
+                [c.name, c.industry, c.esg_level]
+            );
+        }
+        console.log(`Created ${companies.length} sample companies`);
+    }
+}
+
 module.exports = {
     bootstrapDatabase,
     ensureAppUsersTable,
     ensureAdminUsersTable,
     ensureUserDataTable,
     ensureArticlesTable,
-    ensureSurveyComparisonCompaniesTable
+    ensureSurveyComparisonCompaniesTable,
+    ensureCompanyBenchmarksTable,
+    ensureCompaniesTable
 };
