@@ -393,6 +393,11 @@
                     }
                     throw new Error(message || t.genericError);
                 }
+                // If user is also an admin, redirect to admin panel
+                if (data.role === 'admin') {
+                    window.location.href = 'admin.html?lang=' + encodeURIComponent(lang);
+                    return;
+                }
                 redirectAfterSuccess();
             } catch (err) {
                 if (!errorEl.textContent && !document.querySelector('.input-error')) {
