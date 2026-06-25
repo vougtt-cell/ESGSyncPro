@@ -1,4 +1,5 @@
 const { query } = require('./database');
+const bcrypt = require('bcrypt');
 
 async function ensureUserDataUserIdColumn() {
     await query(`
@@ -76,6 +77,8 @@ async function bootstrapDatabase() {
     await ensureUserDataUserIdColumn();
     await ensureSurveyComparisonCompaniesTable();
     await ensureArticlesTable();
+    await ensureDefaultAdmin();
+    await ensureDefaultAppUser();
 }
 
 async function ensureAppUsersTable() {
@@ -127,6 +130,34 @@ async function ensureUserDataTable() {
     `);
     await query('CREATE INDEX IF NOT EXISTS idx_user_data_session_id ON user_data(session_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_data_user_id ON user_data(user_id)');
+}
+
+async function ensureDefaultAdmin() {
+    const adminCount = await query('SELECT COUNT(*) AS n FROM admin_users');
+    if (parseInt(adminCount.rows[0].n, 10) === 0) {
+        const adminUsername = process.env.ADMIN_USERNAME || 'admin@gmail.com';
+        const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+        const hash = await bcrypt.hash(adminPassword, 10);
+        await query(
+            'INSERT INTO admin_users (username, password_hash, full_name) VALUES ($1, $2, $3)',
+            [adminUsername, hash, 'Administrator']
+        );
+        console.log(`Created default admin: username ${adminUsername}`);
+    }
+}
+
+async function ensureDefaultAppUser() {
+    const appUsersCount = await query('SELECT COUNT(*) AS n FROM app_users');
+    if (parseInt(appUsersCount.rows[0].n, 10) === 0) {
+        const defaultUserEmail = process.env.DEFAULT_USER_EMAIL || 'admin@gmail.com';
+        const defaultUserPassword = process.env.DEFAULT_USER_PASSWORD || 'admin';
+        const hash = await bcrypt.hash(defaultUserPassword, 10);
+        await query(
+            'INSERT INTO app_users (email, password_hash, full_name, company_name) VALUES ($1, $2, $3, $4)',
+            [defaultUserEmail, hash, process.env.DEFAULT_USER_FULL_NAME || 'Default User', 'Sample Company']
+        );
+        console.log(`Created default app user: email ${defaultUserEmail}`);
+    }
 }
 
 module.exports = {
