@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login - ESG Survey</title>
+    <link rel="icon" type="image/x-icon" href="public/assets/images/favicon.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        h1 { margin: 0; font-size: 1.25rem; color: #111827; }
+        .lang-switch {
+            display: inline-flex;
+            background: #f3f4f6;
+            border-radius: 999px;
+            border: 1px solid #e5e7eb;
+            padding: 3px;
+        }
+        .lang-switch button {
+            border: none;
+            background: transparent;
+            color: #4b5563;
+            font-size: 0.85rem;
+            border-radius: 999px;
+            padding: 7px 12px;
+            cursor: pointer;
+        }
+        .lang-switch button.active {
+            color: #fff;
+            background: #93cd25;
+        }
+        .subtitle { color: #6b7280; margin-bottom: 16px; font-size: 0.95rem; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 6px; color: #374151; font-size: 0.9rem; }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #95ce24;
+            box-shadow: 0 0 0 3px rgba(149, 206, 36, 0.2);
+        }
+        input.input-error {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+        .field-error {
+            min-height: 18px;
+            margin-top: 6px;
+            color: #dc2626;
+            font-size: 0.82rem;
+        }
+        .btn {
+            width: 100%;
+            margin-top: 8px;
+            border: none;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary { background: #95ce24; color: #fff; }
+        .btn-primary:hover { background: #7fb01f; }
+        .btn-ghost { background: #e5e7eb; color: #374151; width: auto; flex: 1; }
+        .btn-ghost:hover { background: #d1d5db; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .session-bar {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #166534;
+        }
+        .session-bar .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .session-bar .btn-row .btn { margin-top: 0; width: auto; flex: 1; min-width: 120px; }
+        .error { min-height: 20px; color: #dc2626; font-size: 0.9rem; margin-top: 10px; }
+        .muted {
+            margin-top: 10px;
+            color: #4b5563;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .link {
+            color: #7fb01f;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .back {
+            display: inline-block;
+            margin-top: 14px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header-row">
+            <h1 id="title">Sign in to continue</h1>
+            <div class="lang-switch">
+                <button type="button" id="lang-en">EN</button>
+                <button type="button" id="lang-pl">PL</button>
+            </div>
+        </div>
+        <div id="subtitle" class="subtitle">Authorization is required to pass ESG survey.</div>
+        <div id="sessionBar" class="session-bar" style="display:none;">
+            <div id="sessionMsg">You are already signed in.</div>
+            <div class="btn-row">
+                <a href="account.html" id="sessionAccountLink" class="btn btn-primary" style="text-decoration:none;text-align:center;">My account</a>
+                <button type="button" id="sessionLogoutBtn" class="btn btn-ghost">Logout</button>
+            </div>
+        </div>
+        <form id="authForm" novalidate>
+            <div class="form-group">
+                <label for="email" id="emailLabel">Email</label>
+                <input id="email" name="email" type="text" required autocomplete="email" spellcheck="false">
+                <div id="emailError" class="field-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="password" id="passwordLabel">Password</label>
+                <input id="password" name="password" type="password" required autocomplete="current-password">
+                <div id="passwordError" class="field-error"></div>
+            </div>
+            <div class="form-group" id="fullNameGroup" style="display:none;">
+                <label for="fullName" id="fullNameLabel">Full name</label>
+                <input id="fullName" name="fullName" type="text" autocomplete="name">
+                <div id="fullNameError" class="field-error"></div>
+            </div>
+            <div id="error" class="error"></div>
+            <button class="btn btn-primary" id="submitBtn" type="submit">Sign in</button>
+        </form>
+        <div class="muted">
+            <span id="switchLabel">No account?</span>
+            <a class="link" id="switchMode" href="#">Create one</a>
+        </div>
+        <a class="back" id="backLink" href="index.html">← Back to home</a>
+    </div>
+
+    <script>
+        const TEXTS = {
+            en: {
+                pageTitle: 'User Login - ESG Survey',
+                titleLogin: 'Sign in to continue',
+                titleRegister: 'Create account',
+                subtitle: 'Authorization is required to pass ESG survey.',
+                email: 'Email',
+                password: 'Password',
+                fullName: 'Full name',
+                signIn: 'Sign in',
+                register: 'Register',
+                noAccount: 'No account?',
+                hasAccount: 'Already have an account?',
+                createOne: 'Create one',
+                signInHere: 'Sign in',
+                back: '← Back to home',
+                genericError: 'Request failed',
+                passwordRule: 'Password must be at least 8 characters',
+                emailRequired: 'Enter your email',
+                emailInvalid: 'Enter a valid email address',
+                passwordRequired: 'Enter your password',
+                fullNameRequired: 'Enter your full name',
+                emailExists: 'An account with this email already exists',
+                invalidCredentials: 'Incorrect email or password',
+                registrationFailed: 'Registration failed. Try again.',
+                loginFailed: 'Sign in failed. Try again.',
+                sessionSignedIn: 'You are already signed in.',
+                sessionAccount: 'My account',
+                sessionLogout: 'Logout'
+            },
+            pl: {
+                pageTitle: 'Logowanie użytkownika - Ankieta ESG',
+                titleLogin: 'Zaloguj się, aby kontynuować',
+                titleRegister: 'Utwórz konto',
+                subtitle: 'Autoryzacja jest wymagana do wypełnienia ankiety ESG.',
+                email: 'Email',
+                password: 'Hasło',
+                fullName: 'Imię i nazwisko',
+                signIn: 'Zaloguj się',
+                register: 'Zarejestruj się',
+                noAccount: 'Nie masz konta?',
+                hasAccount: 'Masz już konto?',
+                createOne: 'Utwórz konto',
+                signInHere: 'Zaloguj się',
+                back: '← Powrót do strony głównej',
+                genericError: 'Błąd żądania',
+                passwordRule: 'Hasło musi mieć minimum 8 znaków',
+                emailRequired: 'Wpisz adres email',
+                emailInvalid: 'Wpisz poprawny adres email',
+                passwordRequired: 'Wpisz hasło',
+                fullNameRequired: 'Wpisz imię i nazwisko',
+                emailExists: 'Konto z tym adresem email już istnieje',
+                invalidCredentials: 'Nieprawidłowy email lub hasło',
+                registrationFailed: 'Rejestracja nie powiodła się. Spróbuj ponownie.',
+                loginFailed: 'Logowanie nie powiodło się. Spróbuj ponownie.',
+                sessionSignedIn: 'Jesteś już zalogowany.',
+                sessionAccount: 'Moje konto',
+                sessionLogout: 'Wyloguj'
+            }
+        };
+
+        const SUPPORTED_LANGS = ['en', 'pl'];
+        const langEn = document.getElementById('lang-en');
+        const langPl = document.getElementById('lang-pl');
+        const form = document.getElementById('authForm');
+        const errorEl = document.getElementById('error');
+        const submitBtn = document.getElementById('submitBtn');
+        const fullNameGroup = document.getElementById('fullNameGroup');
+        const switchMode = document.getElementById('switchMode');
+        const switchLabel = document.getElementById('switchLabel');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const fullNameInput = document.getElementById('fullName');
+        let mode = 'login';
+
+        function currentLang() {
+            const urlLang = new URLSearchParams(window.location.search).get('lang');
+            if (SUPPORTED_LANGS.includes(urlLang)) return urlLang;
+            const stored = localStorage.getItem('esgsyncp-language');
+            return SUPPORTED_LANGS.includes(stored) ? stored : 'en';
+        }
+
+        function setLang(lang, replace = false) {
+            const safeLang = SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+            localStorage.setItem('esgsyncp-language', safeLang);
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', safeLang);
+            if (replace) window.history.replaceState({}, '', url);
+            else window.history.pushState({}, '', url);
+            applyTexts(safeLang);
+        }
+
+        function applyTexts(lang) {
+            const t = TEXTS[lang] || TEXTS.en;
+            document.documentElement.lang = lang;
+            document.title = t.pageTitle;
+            document.getElementById('title').textContent = mode === 'login' ? t.titleLogin : t.titleRegister;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            document.getElementById('emailLabel').textContent = t.email;
+            document.getElementById('passwordLabel').textContent = t.password;
+            document.getElementById('fullNameLabel').textContent = t.fullName;
+            submitBtn.textContent = mode === 'login' ? t.signIn : t.register;
+            switchLabel.textContent = mode === 'login' ? t.noAccount : t.hasAccount;
+            switchMode.textContent = mode === 'login' ? t.createOne : t.signInHere;
+            document.getElementById('backLink').textContent = t.back;
+            document.getElementById('sessionMsg').textContent = t.sessionSignedIn;
+            document.getElementById('sessionAccountLink').textContent = t.sessionAccount;
+            document.getElementById('sessionLogoutBtn').textContent = t.sessionLogout;
+            const accLink = document.getElementById('sessionAccountLink');
+            if (accLink) accLink.href = 'account.html?lang=' + encodeURIComponent(lang);
+            langEn.classList.toggle('active', lang === 'en');
+            langPl.classList.toggle('active', lang === 'pl');
+            errorEl.textContent = '';
+            clearFieldErrors();
+        }
+
+        function clearFieldErrors() {
+            ['email', 'password', 'fullName'].forEach((field) => {
+                const input = document.getElementById(field);
+                const error = document.getElementById(field + 'Error');
+                if (input) input.classList.remove('input-error');
+                if (error) error.textContent = '';
+            });
+        }
+
+        function setFieldError(field, message) {
+            const input = document.getElementById(field);
+            const error = document.getElementById(field + 'Error');
+            if (input) input.classList.add('input-error');
+            if (error) error.textContent = message || '';
+        }
+
+        function getErrorTextByCode(code, lang, modeValue) {
+            const t = TEXTS[lang] || TEXTS.en;
+            const map = {
+                EMAIL_REQUIRED: t.emailRequired,
+                EMAIL_INVALID: t.emailInvalid,
+                PASSWORD_REQUIRED: t.passwordRequired,
+                PASSWORD_TOO_SHORT: t.passwordRule,
+                FULL_NAME_REQUIRED: t.fullNameRequired,
+                EMAIL_EXISTS: t.emailExists,
+                INVALID_CREDENTIALS: t.invalidCredentials,
+                REGISTRATION_FAILED: t.registrationFailed,
+                LOGIN_FAILED: t.loginFailed
+            };
+            return map[code] || (modeValue === 'register' ? t.registrationFailed : t.loginFailed);
+        }
+
+        function redirectAfterSuccess() {
+            const params = new URLSearchParams(window.location.search);
+            const fallback = 'index.html?lang=' + encodeURIComponent(currentLang());
+            const returnTo = params.get('returnTo') || fallback;
+            window.location.href = returnTo;
+        }
+
+        switchMode.addEventListener('click', (e) => {
+            e.preventDefault();
+            mode = mode === 'login' ? 'register' : 'login';
+            fullNameGroup.style.display = mode === 'register' ? 'block' : 'none';
+            applyTexts(currentLang());
+        });
+
+        langEn.addEventListener('click', () => setLang('en'));
+        langPl.addEventListener('click', () => setLang('pl'));
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.textContent = '';
+            clearFieldErrors();
+            submitBtn.disabled = true;
+            const lang = currentLang();
+            const t = TEXTS[lang] || TEXTS.en;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const fullName = fullNameInput.value.trim();
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!email) {
+                setFieldError('email', t.emailRequired);
+                submitBtn.disabled = false;
+                return;
+            }
+            if (!emailPattern.test(email)) {
+                setFieldError('email', t.emailInvalid);
+                submitBtn.disabled = false;
+                return;
+            }
+            if (!password) {
+                setFieldError('password', t.passwordRequired);
+                submitBtn.disabled = false;
+                return;
+            }
+            if (mode === 'register' && password.length < 8) {
+                setFieldError('password', t.passwordRule);
+                submitBtn.disabled = false;
+                return;
+            }
+            if (mode === 'register' && !fullName) {
+                setFieldError('fullName', t.fullNameRequired);
+                submitBtn.disabled = false;
+                return;
+            }
+            try {
+                const endpoint = mode === 'login' ? '/api/user/login' : '/api/user/register';
+                const payload = mode === 'login' ? { email, password } : { email, password, fullName };
+                const res = await fetch(window.location.origin + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) {
+                    const message = getErrorTextByCode(data.errorCode, lang, mode);
+                    if (data.field) {
+                        setFieldError(data.field, message);
+                    } else {
+                        errorEl.textContent = message || t.genericError;
+                    }
+                    throw new Error(message || t.genericError);
+                }
+                redirectAfterSuccess();
+            } catch (err) {
+                if (!errorEl.textContent && !document.querySelector('.input-error')) {
+                    errorEl.textContent = err.message || t.genericError;
+                }
+            }
+            submitBtn.disabled = false;
+        });
+
+        document.getElementById('sessionLogoutBtn').addEventListener('click', async () => {
+            const lang = currentLang();
+            try {
+                await fetch(window.location.origin + '/api/user/logout', { method: 'POST', credentials: 'include' });
+            } catch (_) {}
+            document.getElementById('sessionBar').style.display = 'none';
+            form.style.display = '';
+            window.location.href = 'user-login.html?lang=' + encodeURIComponent(lang);
+        });
+
+        async function checkExistingUserSession() {
+            try {
+                const res = await fetch(window.location.origin + '/api/user/me', { credentials: 'include' });
+                if (res.ok) {
+                    document.getElementById('sessionBar').style.display = 'block';
+                }
+            } catch (_) {}
+        }
+
+        setLang(currentLang(), true);
+        checkExistingUserSession();
+    </script>
+</body>
+</html>

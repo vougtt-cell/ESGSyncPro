@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - ESG Panel</title>
+    <link rel="icon" type="image/x-icon" href="public/assets/images/favicon.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f9fafb;
+        }
+        .card {
+            background: #fff;
+            padding: 32px;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+            width: 100%;
+            max-width: 360px;
+            border: 1px solid #e5e7eb;
+        }
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 0 24px;
+        }
+        .lang-switch {
+            display: inline-flex;
+            align-items: center;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 3px;
+            gap: 4px;
+        }
+        .lang-option {
+            border: none;
+            border-radius: 999px;
+            padding: 7px 14px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4b5563;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .lang-option:hover {
+            color: #111827;
+            background: #e5e7eb;
+        }
+        .lang-option.active {
+            color: #fff;
+            background: #93cd25;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            transition: border-color .15s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #95ce24;
+            box-shadow: 0 0 0 3px rgba(149, 206, 36, 0.2);
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color .2s ease, transform .15s ease;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary {
+            background: #95ce24;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #7fb01f; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .error { color: #dc2626; font-size: 0.875rem; margin-top: 12px; }
+        .back {
+            display: inline-block;
+            margin-top: 16px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color .15s ease;
+        }
+        .back:hover { color: #7fb01f; }
+        .btn-ghost { background: #e5e7eb; color: #374151; margin-top: 8px; }
+        .btn-ghost:hover { background: #d1d5db; }
+        .session-bar {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #166534;
+        }
+        .session-bar .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .session-bar .btn-row .btn { margin-top: 0; flex: 1; min-width: 120px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header-row">
+            <h1 id="pageTitle">Admin panel sign in</h1>
+            <div class="lang-switch" role="group" aria-label="Language selector">
+                <button type="button" class="lang-option active" id="lang-option-en">EN</button>
+                <button type="button" class="lang-option" id="lang-option-pl">PL</button>
+            </div>
+        </div>
+        <div id="sessionBar" class="session-bar" style="display:none;">
+            <div id="sessionMsg">You are already signed in as administrator.</div>
+            <div class="btn-row">
+                <a href="admin.html" id="sessionAdminLink" class="btn btn-primary" style="text-decoration:none;text-align:center;display:inline-block;">Open admin panel</a>
+                <button type="button" id="sessionLogoutBtn" class="btn btn-ghost">Logout</button>
+            </div>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username" id="usernameLabel">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password" id="passwordLabel">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <div id="error" class="error"></div>
+            <button type="submit" class="btn btn-primary" id="btnSubmit">Sign in</button>
+        </form>
+        <a href="index.html" class="back" id="backLink">← Back to home</a>
+    </div>
+    <script>
+        const API = window.location.origin;
+        const form = document.getElementById('loginForm');
+        const errorEl = document.getElementById('error');
+        const btn = document.getElementById('btnSubmit');
+        const langOptionEn = document.getElementById('lang-option-en');
+        const langOptionPl = document.getElementById('lang-option-pl');
+        const SUPPORTED_LANGS = ['en', 'pl'];
+        const TEXTS = {
+            en: {
+                title: 'Admin Login - ESG Panel',
+                pageTitle: 'Admin panel sign in',
+                usernameLabel: 'Username',
+                passwordLabel: 'Password',
+                submit: 'Sign in',
+                back: '← Back to home',
+                loginError: 'Login failed',
+                networkError: 'Network error',
+                sessionSignedIn: 'You are already signed in as administrator.',
+                sessionAdmin: 'Open admin panel',
+                sessionLogout: 'Logout'
+            },
+            pl: {
+                title: 'Logowanie administratora - Panel ESG',
+                pageTitle: 'Logowanie do panelu administratora',
+                usernameLabel: 'Nazwa użytkownika',
+                passwordLabel: 'Hasło',
+                submit: 'Zaloguj się',
+                back: '← Powrót do strony głównej',
+                loginError: 'Błąd logowania',
+                networkError: 'Błąd sieci',
+                sessionSignedIn: 'Jesteś już zalogowany jako administrator.',
+                sessionAdmin: 'Otwórz panel administratora',
+                sessionLogout: 'Wyloguj'
+            }
+        };
+
+        function getCurrentLanguage() {
+            const urlLang = new URLSearchParams(window.location.search).get('lang');
+            if (SUPPORTED_LANGS.includes(urlLang)) {
+                return urlLang;
+            }
+            const stored = localStorage.getItem('esgsyncp-language');
+            return SUPPORTED_LANGS.includes(stored) ? stored : 'en';
+        }
+
+        function updateLangInUrl(lang, replace) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', lang);
+            if (replace) {
+                window.history.replaceState({}, '', url);
+            } else {
+                window.history.pushState({}, '', url);
+            }
+        }
+
+        function applyLanguage(lang) {
+            const dictionary = TEXTS[lang] || TEXTS.en;
+            document.documentElement.lang = lang;
+            document.title = dictionary.title;
+            document.getElementById('pageTitle').textContent = dictionary.pageTitle;
+            document.getElementById('usernameLabel').textContent = dictionary.usernameLabel;
+            document.getElementById('passwordLabel').textContent = dictionary.passwordLabel;
+            btn.textContent = dictionary.submit;
+            document.getElementById('backLink').textContent = dictionary.back;
+            document.getElementById('sessionMsg').textContent = dictionary.sessionSignedIn;
+            document.getElementById('sessionAdminLink').textContent = dictionary.sessionAdmin;
+            document.getElementById('sessionLogoutBtn').textContent = dictionary.sessionLogout;
+            const adminLink = document.getElementById('sessionAdminLink');
+            if (adminLink) adminLink.href = 'admin.html?lang=' + encodeURIComponent(lang);
+            langOptionEn.classList.toggle('active', lang === 'en');
+            langOptionPl.classList.toggle('active', lang === 'pl');
+            errorEl.textContent = '';
+        }
+
+        function setLanguage(lang, replaceUrl = false) {
+            const nextLang = SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+            localStorage.setItem('esgsyncp-language', nextLang);
+            updateLangInUrl(nextLang, replaceUrl);
+            applyLanguage(nextLang);
+        }
+
+        const initialLang = getCurrentLanguage();
+        setLanguage(initialLang, true);
+        langOptionEn.addEventListener('click', () => setLanguage('en', false));
+        langOptionPl.addEventListener('click', () => setLanguage('pl', false));
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.textContent = '';
+            btn.disabled = true;
+            const activeLang = getCurrentLanguage();
+            const dictionary = TEXTS[activeLang] || TEXTS.en;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            try {
+                const res = await fetch(API + '/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.ok) {
+                    window.location.href = 'admin.html?lang=' + encodeURIComponent(activeLang);
+                    return;
+                }
+                errorEl.textContent = data.error || dictionary.loginError;
+            } catch (err) {
+                errorEl.textContent = dictionary.networkError;
+            }
+            btn.disabled = false;
+        });
+
+        document.getElementById('sessionLogoutBtn').addEventListener('click', async () => {
+            const lang = getCurrentLanguage();
+            try {
+                await fetch(API + '/api/admin/logout', { method: 'POST', credentials: 'include' });
+            } catch (_) {}
+            document.getElementById('sessionBar').style.display = 'none';
+            window.location.href = 'admin-login.html?lang=' + encodeURIComponent(lang);
+        });
+
+        async function checkExistingAdminSession() {
+            try {
+                const res = await fetch(API + '/api/admin/me', { credentials: 'include' });
+                if (res.ok) {
+                    document.getElementById('sessionBar').style.display = 'block';
+                }
+            } catch (_) {}
+        }
+
+        checkExistingAdminSession();
+    </script>
+</body>
+</html>

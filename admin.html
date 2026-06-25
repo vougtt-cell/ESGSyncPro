@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - ESG Reports</title>
+    <link rel="icon" type="image/x-icon" href="public/assets/images/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; background: #f9fafb; color: #111827; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.5rem; font-weight: 600; color: #111827; }
+        .lang-select { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 0.5rem; background: #fff; color: #374151; font-size: 0.875rem; cursor: pointer; }
+        .toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+        .toolbar input, .toolbar select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.875rem; }
+        .toolbar input:focus, .toolbar select:focus { outline: none; border-color: #95ce24; }
+        .toolbar .search { min-width: 220px; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+        .tabs .tab { padding: 8px 16px; border-radius: 0.5rem; cursor: pointer; background: #e5e7eb; border: none; font-size: 0.875rem; font-weight: 500; color: #374151; transition: background .15s ease, color .15s ease; }
+        .tabs .tab:hover { background: #d1d5db; }
+        .tabs .tab.active { background: #95ce24; color: #fff; }
+        .tabs .tab.active:hover { background: #7fb01f; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .btn { padding: 8px 16px; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: background .15s ease, transform .15s ease; text-decoration: none; display: inline-flex; align-items: center; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: #95ce24; color: #fff; }
+        .btn-primary:hover { background: #7fb01f; }
+        .btn-ghost { background: #e5e7eb; color: #374151; }
+        .btn-ghost:hover { background: #d1d5db; }
+        .btn-danger { background: #dc2626; color: #fff; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.1); border: 1px solid #e5e7eb; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; font-size: 0.875rem; }
+        tr:hover { background: #f9fafb; }
+        .actions { display: flex; gap: 8px; }
+        .empty { text-align: center; padding: 40px; color: #6b7280; font-size: 0.875rem; }
+        .error { color: #dc2626; font-size: 0.875rem; margin-bottom: 10px; min-height: 1.25rem; }
+        .success { color: #16a34a; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+        .modal.show { display: flex; }
+        .modal-content { background: #fff; border-radius: 0.75rem; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid #e5e7eb; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; }
+        .modal-header h2 { margin: 0; font-size: 1.125rem; font-weight: 600; color: #111827; }
+        .modal-body { padding: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; color: #374151; font-size: 0.875rem; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 0.5rem; font-size: 0.875rem; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #95ce24; }
+        .form-group textarea { min-height: 120px; font-family: ui-monospace, monospace; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; background: #f9fafb; }
+        .help-body { font-size: 0.8125rem; color: #4b5563; line-height: 1.6; }
+        .help-body p { margin: 6px 0; }
+        .help-body ul { margin: 4px 0 8px 20px; padding: 0; }
+        .help-body li { margin: 3px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-row">
+            <h1 id="pageTitle">Admin panel</h1>
+            <select id="langSelector" class="lang-select" aria-label="Language selector">
+                <option value="en">English</option>
+                <option value="pl">Polski</option>
+            </select>
+        </div>
+        <div class="tabs">
+            <button type="button" class="tab active" data-tab="compare" id="tabCompare">Companies for comparison</button>
+            <button type="button" class="tab" data-tab="articles" id="tabArticles">Articles</button>
+        </div>
+        <div id="error" class="error"></div>
+
+        <div id="panel-compare" class="panel active">
+            <div class="toolbar">
+                <input type="text" id="compareSearch" class="search" placeholder="Search by company or industry...">
+                <select id="compareFilterIndustry">
+                    <option value="" id="industryAnyOption">All industries</option>
+                    <option value="construction">construction</option>
+                    <option value="energy">energy</option>
+                    <option value="fintech">fintech</option>
+                    <option value="retail">retail</option>
+                    <option value="it">it</option>
+                    <option value="logistics">logistics</option>
+                    <option value="manufacturing">manufacturing</option>
+                    <option value="transport">transport</option>
+                    <option value="services">services</option>
+                </select>
+                <button type="button" class="btn btn-ghost" id="btnCompareFilter">Apply</button>
+                <button type="button" class="btn btn-primary" id="btnCompareAdd">+ Add company</button>
+                <button type="button" class="btn btn-ghost" id="btnCopyFromBenchmarks" style="display:none;">Copy from company_benchmarks</button>
+                <button type="button" class="btn btn-primary" id="btnExportPdf">Export PDF</button>
+                <button type="button" class="btn btn-ghost" id="btnHelp">Help</button>
+                <a href="index.html" class="btn btn-ghost" id="btnHome">Home</a>
+                <a href="#" class="btn btn-ghost btn-logout" id="btnLogout">Logout</a>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th id="thIndustry">Industry</th>
+                        <th id="thCompany">Company</th>
+                        <th>Scope 1</th>
+                        <th>% RES</th>
+                        <th>Pay Gap %</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="compareTbody"></tbody>
+            </table>
+            <div id="compareEmpty" class="empty">No companies. Add new items or copy from company_benchmarks.</div>
+        </div>
+
+        <div id="panel-articles" class="panel">
+            <div class="toolbar">
+                <input type="text" id="articlesSearch" class="search" placeholder="Search by title or author...">
+                <select id="articlesFilterStatus">
+                    <option value="" id="articlesStatusAny">All statuses</option>
+                    <option value="draft">draft</option>
+                    <option value="published">published</option>
+                    <option value="archived">archived</option>
+                </select>
+                <button type="button" class="btn btn-ghost" id="btnArticlesFilter">Apply</button>
+                <button type="button" class="btn btn-primary" id="btnArticlesAdd">+ Add article</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th id="thArtTitle">Title (EN)</th>
+                        <th id="thArtStatus">Status</th>
+                        <th id="thArtDate">Published</th>
+                        <th id="thArtAuthor">Author</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="articlesTbody"></tbody>
+            </table>
+            <div id="articlesEmpty" class="empty">No articles yet.</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalCompare">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalCompareTitle">Add company for comparison</h2>
+                <button type="button" class="btn btn-ghost btn-sm" id="btnCloseModalCompare">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="compareFormId" value="">
+                <div class="form-group">
+                    <label id="industryLabel">Industry *</label>
+                    <select id="compareFormIndustry" required>
+                        <option value="construction">construction</option>
+                        <option value="energy">energy</option>
+                        <option value="fintech">fintech</option>
+                        <option value="retail">retail</option>
+                        <option value="it">it</option>
+                        <option value="logistics">logistics</option>
+                        <option value="manufacturing">manufacturing</option>
+                        <option value="transport">transport</option>
+                        <option value="services">services</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="companyLabel">Company name *</label>
+                    <input type="text" id="compareFormCompanyName" required placeholder="Name">
+                </div>
+                <div class="form-group">
+                    <label>Scope 1 (tCO2e)</label>
+                    <input type="number" id="compareFormScope1" min="0" step="1" placeholder="2500">
+                </div>
+                <div class="form-group">
+                    <label>% energy from RES</label>
+                    <input type="number" id="compareFormRen" min="0" max="100" step="0.1" placeholder="35">
+                </div>
+                <div class="form-group">
+                    <label>Pay Gap (%)</label>
+                    <input type="number" id="compareFormPaygap" min="0" max="100" step="0.1" placeholder="18">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="btnCompareCancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnCompareSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalArticle">
+        <div class="modal-content" style="max-width:800px;">
+            <div class="modal-header">
+                <h2 id="modalArticleTitle">Add article</h2>
+                <button type="button" class="btn btn-ghost btn-sm" id="btnCloseModalArticle">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="articleFormId" value="">
+                
+                <!-- English Section -->
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 0.5rem; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 0.875rem; font-weight: 600; color: #374151;">English Content</h3>
+                    <div class="form-group">
+                        <label id="artTitleEnLabel">Title (EN) *</label>
+                        <input type="text" id="articleFormTitleEn" required placeholder="Enter article title in English">
+                    </div>
+                    <div class="form-group">
+                        <label id="artDescEnLabel">Description (EN) *</label>
+                        <textarea id="articleFormDescEn" required placeholder="Brief description for article card" style="min-height:80px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label id="artContentEnLabel">Content (EN)</label>
+                        <textarea id="articleFormContentEn" placeholder="Full article content (optional)" style="min-height:150px;"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Polish Section -->
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 0.5rem; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 0.875rem; font-weight: 600; color: #374151;">Polish Content</h3>
+                    <div class="form-group">
+                        <label id="artTitlePlLabel">Title (PL) *</label>
+                        <input type="text" id="articleFormTitlePl" required placeholder="Wprowadź tytuł artykułu po polsku">
+                    </div>
+                    <div class="form-group">
+                        <label id="artDescPlLabel">Description (PL) *</label>
+                        <textarea id="articleFormDescPl" required placeholder="Krótki opis dla karty artykułu" style="min-height:80px;"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label id="artContentPlLabel">Content (PL)</label>
+                        <textarea id="articleFormContentPl" placeholder="Pełna treść artykułu (opcjonalne)" style="min-height:150px;"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Media Section -->
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 0.5rem; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 0.875rem; font-weight: 600; color: #374151;">Media & Author</h3>
+                    <div class="form-group">
+                        <label id="artThumbLabel">Thumbnail URL *</label>
+                        <input type="text" id="articleFormThumb" placeholder="public/assets/images/articles(1).png" required>
+                        <div id="thumbPreview" style="margin-top: 8px; max-height: 200px; overflow: hidden; border-radius: 0.375rem; display: none;">
+                            <img id="thumbPreviewImg" src="" alt="Thumbnail preview" style="max-width: 100%; height: auto;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="artAuthorLabel">Author Name *</label>
+                        <input type="text" id="articleFormAuthor" required placeholder="Author's full name">
+                    </div>
+                    <div class="form-group">
+                        <label id="artAvatarLabel">Author Avatar URL</label>
+                        <input type="text" id="articleFormAvatar" placeholder="public/assets/images/avatar.png">
+                        <div id="avatarPreview" style="margin-top: 8px; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; display: none;">
+                            <img id="avatarPreviewImg" src="" alt="Avatar preview" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Section -->
+                <div style="background: #f3f4f6; padding: 12px; border-radius: 0.5rem; margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 0.875rem; font-weight: 600; color: #374151;">Settings</h3>
+                    <div class="form-group">
+                        <label id="artSlugLabel">Slug (optional)</label>
+                        <input type="text" id="articleFormSlug" placeholder="my-article-slug">
+                        <small style="color: #6b7280; font-size: 0.75rem;">Leave empty to auto-generate from English title</small>
+                    </div>
+                    <div class="form-group">
+                        <label id="artDateLabel">Published Date *</label>
+                        <input type="date" id="articleFormDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="artStatusLabel">Status *</label>
+                        <select id="articleFormStatus">
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                            <option value="archived">Archived</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" id="btnArticleCancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnArticleSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalHelp">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="helpTitle">Help</h2>
+                <button type="button" class="btn btn-ghost btn-sm" id="btnCloseHelp">&times;</button>
+            </div>
+            <div class="modal-body help-body" id="helpBody"></div>
+        </div>
+    </div>
+
+    <script>
+        (async function () {
+            const SUPPORTED_LANGS = ['en', 'pl'];
+            const I18N = {
+                en: {
+                    title: 'Admin Panel - ESG Reports',
+                    pageTitle: 'Admin panel',
+                    tabCompare: 'Companies for comparison',
+                    searchPlaceholder: 'Search by company or industry...',
+                    industryAny: 'All industries',
+                    btnApply: 'Apply',
+                    btnAdd: '+ Add company',
+                    btnExport: 'Export PDF',
+                    btnHelp: 'Help',
+                    btnHome: 'Home',
+                    btnLogout: 'Logout',
+                    thIndustry: 'Industry',
+                    thCompany: 'Company',
+                    empty: 'No companies. Add new items or copy from company_benchmarks.',
+                    modalAddTitle: 'Add company for comparison',
+                    modalEditTitle: 'Edit company',
+                    industryLabel: 'Industry *',
+                    companyLabel: 'Company name *',
+                    companyPlaceholder: 'Name',
+                    btnCancel: 'Cancel',
+                    btnSave: 'Save',
+                    helpTitle: 'Help',
+                    deleteConfirm: 'Delete this company from questionnaire list?',
+                    validationRequired: 'Please provide industry and company name.',
+                    loadError: 'Load error: ',
+                    saveSuccess: 'Saved.',
+                    saveError: 'Error: ',
+                    deleteError: 'Delete error: ',
+                    exportNoData: 'No data to export.',
+                    exportSuccess: 'PDF saved.',
+                    exportError: 'Export error: ',
+                    notConnected: 'Unable to connect to API. Open admin panel from same host as server, e.g. http://localhost:3010/admin.html',
+                    loginRedirect: 'admin-login.html',
+                    pdfTitle: 'Companies for comparison',
+                    pdfDateLabel: 'Date: ',
+                    editAction: 'Edit',
+                    deleteAction: 'Delete',
+                    helpHtml: '<p><b>Companies for comparison</b> are shown in the questionnaire and are used in the generated PDF for benchmarking.</p><p><b>Fields:</b></p><ul><li><b>Industry</b> must match one of: construction, energy, fintech, retail, it, logistics, manufacturing, transport, services.</li><li><b>Company name</b> is displayed in questionnaire and in PDF comparison table.</li><li><b>Scope 1</b>, <b>% RES</b>, <b>Pay Gap</b> are optional numeric values.</li></ul><p><b>Actions:</b> add, edit, delete records. Filter by industry and use search for instant client filtering.</p>',
+                    tabArticles: 'Articles',
+                    articlesSearchPlaceholder: 'Search by title or author...',
+                    articlesStatusAny: 'All statuses',
+                    btnArticlesAdd: '+ Add article',
+                    thArtTitle: 'Title (EN)',
+                    thArtStatus: 'Status',
+                    thArtDate: 'Published',
+                    thArtAuthor: 'Author',
+                    articlesEmpty: 'No articles yet.',
+                    modalArtAddTitle: 'Add article',
+                    modalArtEditTitle: 'Edit article',
+                    artTitleEnLabel: 'Title (EN) *',
+                    artTitlePlLabel: 'Title (PL) *',
+                    artDescEnLabel: 'Description (EN) *',
+                    artDescPlLabel: 'Description (PL) *',
+                    artContentEnLabel: 'Content (EN)',
+                    artContentPlLabel: 'Content (PL)',
+                    artAuthorLabel: 'Author *',
+                    artThumbLabel: 'Thumbnail URL *',
+                    artAvatarLabel: 'Author avatar URL',
+                    artSlugLabel: 'Slug (optional)',
+                    artDateLabel: 'Published date *',
+                    artStatusLabel: 'Status *',
+                    artDeleteConfirm: 'Delete this article?',
+                    artValidationRequired: 'Fill required fields (titles, descriptions, author, thumbnail, date).',
+                    artLoadError: 'Articles load error: ',
+                    artSaveError: 'Article save error: ',
+                    artDeleteError: 'Article delete error: '
+                },
+                pl: {
+                    title: 'Panel administratora - Raporty ESG',
+                    pageTitle: 'Panel administratora',
+                    tabCompare: 'Firmy do porownania',
+                    searchPlaceholder: 'Szukaj po firmie lub branzy...',
+                    industryAny: 'Wszystkie branze',
+                    btnApply: 'Zastosuj',
+                    btnAdd: '+ Dodaj firme',
+                    btnExport: 'Eksport PDF',
+                    btnHelp: 'Pomoc',
+                    btnHome: 'Strona glowna',
+                    btnLogout: 'Wyloguj',
+                    thIndustry: 'Branza',
+                    thCompany: 'Firma',
+                    empty: 'Brak firm. Dodaj nowe pozycje lub skopiuj z company_benchmarks.',
+                    modalAddTitle: 'Dodaj firme do porownania',
+                    modalEditTitle: 'Edytuj firme',
+                    industryLabel: 'Branza *',
+                    companyLabel: 'Nazwa firmy *',
+                    companyPlaceholder: 'Nazwa',
+                    btnCancel: 'Anuluj',
+                    btnSave: 'Zapisz',
+                    helpTitle: 'Pomoc',
+                    deleteConfirm: 'Usunac firme z listy w ankiecie?',
+                    validationRequired: 'Podaj branze i nazwe firmy.',
+                    loadError: 'Blad ladowania: ',
+                    saveSuccess: 'Zapisano.',
+                    saveError: 'Blad: ',
+                    deleteError: 'Blad usuwania: ',
+                    exportNoData: 'Brak danych do eksportu.',
+                    exportSuccess: 'PDF zapisany.',
+                    exportError: 'Blad eksportu: ',
+                    notConnected: 'Nie mozna polaczyc z API. Otworz panel z tego samego hosta co serwer, np. http://localhost:3010/admin.html',
+                    loginRedirect: 'admin-login.html',
+                    pdfTitle: 'Firmy do porownania',
+                    pdfDateLabel: 'Data: ',
+                    editAction: 'Edytuj',
+                    deleteAction: 'Usun',
+                    helpHtml: '<p><b>Firmy do porownania</b> sa wyswietlane w ankiecie i uzywane w raporcie PDF do benchmarkingu.</p><p><b>Pola:</b></p><ul><li><b>Branza</b> musi byc jedna z: construction, energy, fintech, retail, it, logistics, manufacturing, transport, services.</li><li><b>Nazwa firmy</b> jest widoczna w ankiecie i tabeli porownawczej PDF.</li><li><b>Scope 1</b>, <b>% RES</b>, <b>Pay Gap</b> to opcjonalne wartosci liczbowe.</li></ul><p><b>Dzialania:</b> dodawanie, edycja i usuwanie rekordow. Filtrowanie po branzy i szybkie wyszukiwanie po stronie klienta.</p>',
+                    tabArticles: 'Artykuly',
+                    articlesSearchPlaceholder: 'Szukaj po tytule lub autorze...',
+                    articlesStatusAny: 'Wszystkie statusy',
+                    btnArticlesAdd: '+ Dodaj artykul',
+                    thArtTitle: 'Tytul (EN)',
+                    thArtStatus: 'Status',
+                    thArtDate: 'Data publikacji',
+                    thArtAuthor: 'Autor',
+                    articlesEmpty: 'Brak artykulow.',
+                    modalArtAddTitle: 'Dodaj artykul',
+                    modalArtEditTitle: 'Edytuj artykul',
+                    artTitleEnLabel: 'Tytul (EN) *',
+                    artTitlePlLabel: 'Tytul (PL) *',
+                    artDescEnLabel: 'Opis (EN) *',
+                    artDescPlLabel: 'Opis (PL) *',
+                    artContentEnLabel: 'Tresc (EN)',
+                    artContentPlLabel: 'Tresc (PL)',
+                    artAuthorLabel: 'Autor *',
+                    artThumbLabel: 'URL miniatury *',
+                    artAvatarLabel: 'URL awatara autora',
+                    artSlugLabel: 'Slug (opcjonalnie)',
+                    artDateLabel: 'Data publikacji *',
+                    artStatusLabel: 'Status *',
+                    artDeleteConfirm: 'Usunac ten artykul?',
+                    artValidationRequired: 'Uzupelnij wymagane pola (tytuly, opisy, autor, miniatura, data).',
+                    artLoadError: 'Blad ladowania artykulow: ',
+                    artSaveError: 'Blad zapisu artykulu: ',
+                    artDeleteError: 'Blad usuwania artykulu: '
+                }
+            };
+
+            let currentLanguage = 'en';
+            const apiBase = () => window.location.origin.replace(/\/$/, '');
+
+            const compareTbody = document.getElementById('compareTbody');
+            const compareEmpty = document.getElementById('compareEmpty');
+            const modalCompare = document.getElementById('modalCompare');
+            const modalHelp = document.getElementById('modalHelp');
+            const errEl = document.getElementById('error');
+            let compareFullList = [];
+            let currentCompareListForExport = [];
+            let articlesFullList = [];
+            const articlesTbody = document.getElementById('articlesTbody');
+            const articlesEmpty = document.getElementById('articlesEmpty');
+            const modalArticle = document.getElementById('modalArticle');
+
+            function t(key) {
+                return (I18N[currentLanguage] || I18N.en)[key] || key;
+            }
+
+            function getCurrentLanguage() {
+                const urlLang = new URLSearchParams(window.location.search).get('lang');
+                if (SUPPORTED_LANGS.includes(urlLang)) return urlLang;
+                const stored = localStorage.getItem('esgsyncp-language');
+                return SUPPORTED_LANGS.includes(stored) ? stored : 'en';
+            }
+
+            function updateLangInUrl(lang, replace) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('lang', lang);
+                if (replace) {
+                    window.history.replaceState({}, '', url);
+                } else {
+                    window.history.pushState({}, '', url);
+                }
+            }
+
+            function setHomeLinkLanguage() {
+                const home = document.getElementById('btnHome');
+                home.href = 'index.html?lang=' + encodeURIComponent(currentLanguage);
+            }
+
+            function applyLanguage() {
+                document.documentElement.lang = currentLanguage;
+                document.title = t('title');
+                document.getElementById('pageTitle').textContent = t('pageTitle');
+                document.getElementById('tabCompare').textContent = t('tabCompare');
+                document.getElementById('tabArticles').textContent = t('tabArticles');
+                document.getElementById('articlesSearch').placeholder = t('articlesSearchPlaceholder');
+                document.getElementById('articlesStatusAny').textContent = t('articlesStatusAny');
+                document.getElementById('btnArticlesFilter').textContent = t('btnApply');
+                document.getElementById('btnArticlesAdd').textContent = t('btnArticlesAdd');
+                document.getElementById('thArtTitle').textContent = t('thArtTitle');
+                document.getElementById('thArtStatus').textContent = t('thArtStatus');
+                document.getElementById('thArtDate').textContent = t('thArtDate');
+                document.getElementById('thArtAuthor').textContent = t('thArtAuthor');
+                articlesEmpty.textContent = t('articlesEmpty');
+                document.getElementById('artTitleEnLabel').textContent = t('artTitleEnLabel');
+                document.getElementById('artTitlePlLabel').textContent = t('artTitlePlLabel');
+                document.getElementById('artDescEnLabel').textContent = t('artDescEnLabel');
+                document.getElementById('artDescPlLabel').textContent = t('artDescPlLabel');
+                document.getElementById('artContentEnLabel').textContent = t('artContentEnLabel');
+                document.getElementById('artContentPlLabel').textContent = t('artContentPlLabel');
+                document.getElementById('artAuthorLabel').textContent = t('artAuthorLabel');
+                document.getElementById('artThumbLabel').textContent = t('artThumbLabel');
+                document.getElementById('artAvatarLabel').textContent = t('artAvatarLabel');
+                document.getElementById('artSlugLabel').textContent = t('artSlugLabel');
+                document.getElementById('artDateLabel').textContent = t('artDateLabel');
+                document.getElementById('artStatusLabel').textContent = t('artStatusLabel');
+                document.getElementById('btnArticleCancel').textContent = t('btnCancel');
+                document.getElementById('btnArticleSave').textContent = t('btnSave');
+                document.getElementById('compareSearch').placeholder = t('searchPlaceholder');
+                document.getElementById('industryAnyOption').textContent = t('industryAny');
+                document.getElementById('btnCompareFilter').textContent = t('btnApply');
+                document.getElementById('btnCompareAdd').textContent = t('btnAdd');
+                document.getElementById('btnExportPdf').textContent = t('btnExport');
+                document.getElementById('btnHelp').textContent = t('btnHelp');
+                document.getElementById('btnHome').textContent = t('btnHome');
+                document.getElementById('btnLogout').textContent = t('btnLogout');
+                document.getElementById('thIndustry').textContent = t('thIndustry');
+                document.getElementById('thCompany').textContent = t('thCompany');
+                compareEmpty.textContent = t('empty');
+                document.getElementById('industryLabel').textContent = t('industryLabel');
+                document.getElementById('companyLabel').textContent = t('companyLabel');
+                document.getElementById('compareFormCompanyName').placeholder = t('companyPlaceholder');
+                document.getElementById('btnCompareCancel').textContent = t('btnCancel');
+                document.getElementById('btnCompareSave').textContent = t('btnSave');
+                document.getElementById('helpTitle').textContent = t('helpTitle');
+                document.getElementById('helpBody').innerHTML = t('helpHtml');
+                setHomeLinkLanguage();
+                renderCompareList(currentCompareListForExport);
+                renderArticlesList(articlesFullList);
+            }
+
+            function switchTab(tabName) {
+                document.querySelectorAll('.tabs .tab').forEach((el) => {
+                    el.classList.toggle('active', el.dataset.tab === tabName);
+                });
+                document.querySelectorAll('.panel').forEach((el) => {
+                    el.classList.toggle('active', el.id === 'panel-' + tabName);
+                });
+                if (tabName === 'articles') loadArticlesList();
+            }
+
+            function setLanguage(lang, replaceUrl = false) {
+                currentLanguage = SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+                localStorage.setItem('esgsyncp-language', currentLanguage);
+                updateLangInUrl(currentLanguage, replaceUrl);
+                document.getElementById('langSelector').value = currentLanguage;
+                applyLanguage();
+            }
+
+            function showErr(msg, isSuccess) {
+                errEl.textContent = msg || '';
+                errEl.classList.toggle('success', !!isSuccess);
+            }
+
+            async function api(path, options = {}) {
+                const res = await fetch(apiBase() + path, { ...options, credentials: 'include', headers: { 'Content-Type': 'application/json', ...options.headers } });
+                const data = res.ok ? await res.json().catch(() => ({})) : await res.json().catch(() => ({ error: res.statusText }));
+                if (!res.ok) throw new Error(data.error || data.details || res.statusText);
+                return data;
+            }
+
+            async function checkAuth() {
+                try {
+                    const res = await fetch(apiBase() + '/api/admin/me', { credentials: 'include' });
+                    if (res.status === 401) {
+                        window.location.href = t('loginRedirect') + '?lang=' + encodeURIComponent(currentLanguage);
+                        return false;
+                    }
+                    return true;
+                } catch (_) {
+                    window.location.href = t('loginRedirect') + '?lang=' + encodeURIComponent(currentLanguage);
+                    return false;
+                }
+            }
+
+            function escapeHtml(s) {
+                if (s == null) return '';
+                const div = document.createElement('div');
+                div.textContent = s;
+                return div.innerHTML;
+            }
+
+            function renderCompareList(list) {
+                currentCompareListForExport = Array.isArray(list) ? list : [];
+                compareTbody.innerHTML = '';
+                compareEmpty.style.display = currentCompareListForExport.length ? 'none' : 'block';
+                currentCompareListForExport.forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${r.id}</td>
+                        <td>${escapeHtml(r.industry)}</td>
+                        <td>${escapeHtml(r.company_name)}</td>
+                        <td>${r.scope1 != null ? r.scope1 : '-'}</td>
+                        <td>${r.ren != null ? r.ren : '-'}</td>
+                        <td>${r.paygap != null ? r.paygap : '-'}</td>
+                        <td class="actions">
+                            <button type="button" class="btn btn-ghost btn-sm btn-compare-edit" data-id="${r.id}">${t('editAction')}</button>
+                            <button type="button" class="btn btn-danger btn-sm btn-compare-delete" data-id="${r.id}">${t('deleteAction')}</button>
+                        </td>`;
+                    compareTbody.appendChild(tr);
+                });
+                compareTbody.querySelectorAll('.btn-compare-edit').forEach(b => b.addEventListener('click', () => openCompareEdit(b.dataset.id)));
+                compareTbody.querySelectorAll('.btn-compare-delete').forEach(b => b.addEventListener('click', () => deleteCompare(b.dataset.id)));
+            }
+
+            async function loadCompareList() {
+                showErr('');
+                const industry = document.getElementById('compareFilterIndustry').value;
+                const path = industry ? '/api/survey-comparison-companies?industry=' + encodeURIComponent(industry) : '/api/survey-comparison-companies';
+                try {
+                    const list = await api(path);
+                    compareFullList = Array.isArray(list) ? list : [];
+                    applyCompareFilter();
+                } catch (e) {
+                    showErr(t('loadError') + e.message);
+                    compareFullList = [];
+                    renderCompareList([]);
+                }
+            }
+
+            function applyCompareFilter() {
+                const q = (document.getElementById('compareSearch').value || '').trim().toLowerCase();
+                const list = q
+                    ? compareFullList.filter(r =>
+                        (r.company_name && r.company_name.toLowerCase().includes(q)) ||
+                        (r.industry && r.industry.toLowerCase().includes(q))
+                    )
+                    : compareFullList;
+                renderCompareList(list);
+            }
+
+            function openCompareAdd() {
+                document.getElementById('modalCompareTitle').textContent = t('modalAddTitle');
+                document.getElementById('compareFormId').value = '';
+                document.getElementById('compareFormCompanyName').value = '';
+                document.getElementById('compareFormScope1').value = '';
+                document.getElementById('compareFormRen').value = '';
+                document.getElementById('compareFormPaygap').value = '';
+                document.getElementById('compareFormIndustry').value = document.getElementById('compareFilterIndustry').value || 'construction';
+                modalCompare.classList.add('show');
+            }
+
+            async function openCompareEdit(id) {
+                const r = await api('/api/survey-comparison-companies?id=' + id);
+                document.getElementById('modalCompareTitle').textContent = t('modalEditTitle');
+                document.getElementById('compareFormId').value = r.id;
+                document.getElementById('compareFormIndustry').value = r.industry || 'construction';
+                document.getElementById('compareFormCompanyName').value = r.company_name || '';
+                document.getElementById('compareFormScope1').value = r.scope1 != null ? r.scope1 : '';
+                document.getElementById('compareFormRen').value = r.ren != null ? r.ren : '';
+                document.getElementById('compareFormPaygap').value = r.paygap != null ? r.paygap : '';
+                modalCompare.classList.add('show');
+            }
+
+            function numOrNull(val) {
+                if (val === '' || val === undefined || val === null) return null;
+                const n = Number(val);
+                return Number.isNaN(n) ? null : n;
+            }
+
+            async function saveCompare() {
+                const id = document.getElementById('compareFormId').value;
+                const industry = document.getElementById('compareFormIndustry').value;
+                const company_name = document.getElementById('compareFormCompanyName').value.trim();
+                if (!industry || !company_name) {
+                    showErr(t('validationRequired'));
+                    return;
+                }
+                showErr('');
+                const payload = {
+                    industry,
+                    company_name,
+                    scope1: numOrNull(document.getElementById('compareFormScope1').value),
+                    ren: numOrNull(document.getElementById('compareFormRen').value),
+                    paygap: numOrNull(document.getElementById('compareFormPaygap').value)
+                };
+                try {
+                    if (id) {
+                        await api('/api/survey-comparison-companies/' + id, { method: 'PUT', body: JSON.stringify(payload) });
+                    } else {
+                        await api('/api/survey-comparison-companies', { method: 'POST', body: JSON.stringify(payload) });
+                    }
+                    modalCompare.classList.remove('show');
+                    showErr(t('saveSuccess'), true);
+                    setTimeout(() => showErr(''), 2000);
+                    await loadCompareList();
+                } catch (e) {
+                    showErr(t('saveError') + e.message);
+                }
+            }
+
+            async function deleteCompare(id) {
+                if (!window.confirm(t('deleteConfirm'))) return;
+                try {
+                    await api('/api/survey-comparison-companies/' + id, { method: 'DELETE' });
+                    await loadCompareList();
+                } catch (e) {
+                    showErr(t('deleteError') + e.message);
+                }
+            }
+
+            function renderArticlesList(list) {
+                const rows = Array.isArray(list) ? list : [];
+                articlesTbody.innerHTML = '';
+                articlesEmpty.style.display = rows.length ? 'none' : 'block';
+                rows.forEach((r) => {
+                    const tr = document.createElement('tr');
+                    const pubDate = r.published_date ? String(r.published_date).slice(0, 10) : '-';
+                    tr.innerHTML = `
+                        <td>${r.id}</td>
+                        <td>${escapeHtml(r.title_en)}</td>
+                        <td>${escapeHtml(r.status)}</td>
+                        <td>${escapeHtml(pubDate)}</td>
+                        <td>${escapeHtml(r.author_name)}</td>
+                        <td class="actions">
+                            <button type="button" class="btn btn-ghost btn-sm btn-article-edit" data-id="${r.id}">${t('editAction')}</button>
+                            <button type="button" class="btn btn-danger btn-sm btn-article-delete" data-id="${r.id}">${t('deleteAction')}</button>
+                        </td>`;
+                    articlesTbody.appendChild(tr);
+                });
+                articlesTbody.querySelectorAll('.btn-article-edit').forEach((b) => b.addEventListener('click', () => openArticleEdit(b.dataset.id)));
+                articlesTbody.querySelectorAll('.btn-article-delete').forEach((b) => b.addEventListener('click', () => deleteArticle(b.dataset.id)));
+            }
+
+            function applyArticlesFilter() {
+                const q = (document.getElementById('articlesSearch').value || '').trim().toLowerCase();
+                const list = q
+                    ? articlesFullList.filter((r) =>
+                        (r.title_en && r.title_en.toLowerCase().includes(q)) ||
+                        (r.title_pl && r.title_pl.toLowerCase().includes(q)) ||
+                        (r.author_name && r.author_name.toLowerCase().includes(q))
+                    )
+                    : articlesFullList;
+                renderArticlesList(list);
+            }
+
+            async function loadArticlesList() {
+                showErr('');
+                const status = document.getElementById('articlesFilterStatus').value;
+                const path = status ? '/api/admin/articles?status=' + encodeURIComponent(status) : '/api/admin/articles';
+                try {
+                    const list = await api(path);
+                    articlesFullList = Array.isArray(list) ? list : [];
+                    applyArticlesFilter();
+                } catch (e) {
+                    showErr(t('artLoadError') + e.message);
+                    articlesFullList = [];
+                    renderArticlesList([]);
+                }
+            }
+
+            function openArticleAdd() {
+                document.getElementById('modalArticleTitle').textContent = t('modalArtAddTitle');
+                document.getElementById('articleFormId').value = '';
+                document.getElementById('articleFormTitleEn').value = '';
+                document.getElementById('articleFormTitlePl').value = '';
+                document.getElementById('articleFormDescEn').value = '';
+                document.getElementById('articleFormDescPl').value = '';
+                document.getElementById('articleFormContentEn').value = '';
+                document.getElementById('articleFormContentPl').value = '';
+                document.getElementById('articleFormAuthor').value = '';
+                document.getElementById('articleFormThumb').value = 'public/assets/images/articles(1).png';
+                document.getElementById('articleFormAvatar').value = '';
+                document.getElementById('articleFormSlug').value = '';
+                document.getElementById('articleFormDate').value = new Date().toISOString().slice(0, 10);
+                document.getElementById('articleFormStatus').value = 'draft';
+                hideImagePreviews();
+                modalArticle.classList.add('show');
+            }
+
+            async function openArticleEdit(id) {
+                const r = await api('/api/admin/articles?id=' + id);
+                document.getElementById('modalArticleTitle').textContent = t('modalArtEditTitle');
+                document.getElementById('articleFormId').value = r.id;
+                document.getElementById('articleFormTitleEn').value = r.title_en || '';
+                document.getElementById('articleFormTitlePl').value = r.title_pl || '';
+                document.getElementById('articleFormDescEn').value = r.description_en || '';
+                document.getElementById('articleFormDescPl').value = r.description_pl || '';
+                document.getElementById('articleFormContentEn').value = r.content_en || '';
+                document.getElementById('articleFormContentPl').value = r.content_pl || '';
+                document.getElementById('articleFormAuthor').value = r.author_name || '';
+                document.getElementById('articleFormThumb').value = r.thumbnail_url || '';
+                document.getElementById('articleFormAvatar').value = r.author_avatar_url || '';
+                document.getElementById('articleFormSlug').value = r.slug || '';
+                document.getElementById('articleFormDate').value = r.published_date ? String(r.published_date).slice(0, 10) : '';
+                document.getElementById('articleFormStatus').value = r.status || 'draft';
+                showImagePreviews();
+                modalArticle.classList.add('show');
+            }
+
+            async function saveArticle() {
+                const id = document.getElementById('articleFormId').value;
+                const payload = {
+                    title_en: document.getElementById('articleFormTitleEn').value.trim(),
+                    title_pl: document.getElementById('articleFormTitlePl').value.trim(),
+                    description_en: document.getElementById('articleFormDescEn').value.trim(),
+                    description_pl: document.getElementById('articleFormDescPl').value.trim(),
+                    content_en: document.getElementById('articleFormContentEn').value.trim(),
+                    content_pl: document.getElementById('articleFormContentPl').value.trim(),
+                    author_name: document.getElementById('articleFormAuthor').value.trim(),
+                    thumbnail_url: document.getElementById('articleFormThumb').value.trim(),
+                    author_avatar_url: document.getElementById('articleFormAvatar').value.trim() || null,
+                    slug: document.getElementById('articleFormSlug').value.trim() || undefined,
+                    published_date: document.getElementById('articleFormDate').value,
+                    status: document.getElementById('articleFormStatus').value
+                };
+                if (!payload.title_en || !payload.title_pl || !payload.description_en || !payload.description_pl || !payload.author_name || !payload.thumbnail_url || !payload.published_date) {
+                    showErr(t('artValidationRequired'));
+                    return;
+                }
+                showErr('');
+                try {
+                    if (id) {
+                        await api('/api/admin/articles/' + id, { method: 'PUT', body: JSON.stringify(payload) });
+                    } else {
+                        await api('/api/admin/articles', { method: 'POST', body: JSON.stringify(payload) });
+                    }
+                    modalArticle.classList.remove('show');
+                    showErr(t('saveSuccess'), true);
+                    setTimeout(() => showErr(''), 2000);
+                    await loadArticlesList();
+                } catch (e) {
+                    showErr(t('artSaveError') + e.message);
+                }
+            }
+
+            async function deleteArticle(id) {
+                if (!window.confirm(t('artDeleteConfirm'))) return;
+                try {
+                    await api('/api/admin/articles/' + id, { method: 'DELETE' });
+                    await loadArticlesList();
+                } catch (e) {
+                    showErr(t('artDeleteError') + e.message);
+                }
+            }
+
+            // Image preview functions
+            function showImagePreviews() {
+                const thumbUrl = document.getElementById('articleFormThumb').value;
+                const avatarUrl = document.getElementById('articleFormAvatar').value;
+                
+                const thumbPreview = document.getElementById('thumbPreview');
+                const thumbPreviewImg = document.getElementById('thumbPreviewImg');
+                const avatarPreview = document.getElementById('avatarPreview');
+                const avatarPreviewImg = document.getElementById('avatarPreviewImg');
+                
+                if (thumbUrl) {
+                    thumbPreviewImg.src = thumbUrl;
+                    thumbPreview.style.display = 'block';
+                } else {
+                    thumbPreview.style.display = 'none';
+                }
+                
+                if (avatarUrl) {
+                    avatarPreviewImg.src = avatarUrl;
+                    avatarPreview.style.display = 'block';
+                } else {
+                    avatarPreview.style.display = 'none';
+                }
+            }
+            
+            function hideImagePreviews() {
+                document.getElementById('thumbPreview').style.display = 'none';
+                document.getElementById('avatarPreview').style.display = 'none';
+            }
+
+            function exportCompareToPdf() {
+                if (!currentCompareListForExport.length) {
+                    showErr(t('exportNoData'));
+                    setTimeout(() => showErr(''), 2000);
+                    return;
+                }
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    doc.setFontSize(16);
+                    doc.text(t('pdfTitle'), 14, 18);
+                    doc.setFontSize(10);
+                    doc.text(t('pdfDateLabel') + new Date().toLocaleString(currentLanguage === 'pl' ? 'pl-PL' : 'en-GB', { dateStyle: 'short', timeStyle: 'medium' }), 14, 25);
+                    const headers = [['ID', t('thIndustry'), t('thCompany'), 'Scope 1', '% RES', 'Pay Gap %']];
+                    const rows = currentCompareListForExport.map(r => [
+                        String(r.id),
+                        r.industry || '-',
+                        r.company_name || '-',
+                        r.scope1 != null ? String(r.scope1) : '-',
+                        r.ren != null ? String(r.ren) : '-',
+                        r.paygap != null ? String(r.paygap) : '-'
+                    ]);
+                    doc.autoTable({ head: headers, body: rows, startY: 30, styles: { fontSize: 9 }, headStyles: { fillColor: [149, 206, 36] } });
+                    doc.save('companies-compare-' + new Date().toISOString().slice(0, 10) + '.pdf');
+                    showErr(t('exportSuccess'), true);
+                    setTimeout(() => showErr(''), 2000);
+                } catch (e) {
+                    showErr(t('exportError') + e.message);
+                }
+            }
+
+            currentLanguage = getCurrentLanguage();
+            setLanguage(currentLanguage, true);
+
+            if (!(await checkAuth())) return;
+
+            document.getElementById('langSelector').addEventListener('change', (e) => setLanguage(e.target.value));
+            document.querySelectorAll('.tabs .tab').forEach((tab) => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+            document.getElementById('btnCompareFilter').addEventListener('click', loadCompareList);
+            document.getElementById('btnArticlesFilter').addEventListener('click', loadArticlesList);
+            document.getElementById('articlesSearch').addEventListener('input', applyArticlesFilter);
+            document.getElementById('btnArticlesAdd').addEventListener('click', openArticleAdd);
+            document.getElementById('btnCloseModalArticle').addEventListener('click', () => modalArticle.classList.remove('show'));
+            document.getElementById('btnArticleCancel').addEventListener('click', () => modalArticle.classList.remove('show'));
+            document.getElementById('btnArticleSave').addEventListener('click', saveArticle);
+            modalArticle.addEventListener('click', (e) => { if (e.target === modalArticle) modalArticle.classList.remove('show'); });
+            
+            // Image preview event listeners
+            document.getElementById('articleFormThumb').addEventListener('input', showImagePreviews);
+            document.getElementById('articleFormAvatar').addEventListener('input', showImagePreviews);
+            document.getElementById('compareSearch').addEventListener('input', applyCompareFilter);
+            document.getElementById('compareSearch').addEventListener('change', applyCompareFilter);
+            document.getElementById('btnCompareAdd').addEventListener('click', openCompareAdd);
+            document.getElementById('btnExportPdf').addEventListener('click', exportCompareToPdf);
+            document.getElementById('btnHelp').addEventListener('click', () => modalHelp.classList.add('show'));
+            document.getElementById('btnCloseHelp').addEventListener('click', () => modalHelp.classList.remove('show'));
+            modalHelp.addEventListener('click', e => { if (e.target === modalHelp) modalHelp.classList.remove('show'); });
+            document.getElementById('btnCloseModalCompare').addEventListener('click', () => modalCompare.classList.remove('show'));
+            document.getElementById('btnCompareCancel').addEventListener('click', () => modalCompare.classList.remove('show'));
+            document.getElementById('btnCompareSave').addEventListener('click', saveCompare);
+            modalCompare.addEventListener('click', e => { if (e.target === modalCompare) modalCompare.classList.remove('show'); });
+
+            document.querySelectorAll('.btn-logout').forEach(el => {
+                el.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await fetch(apiBase() + '/api/admin/logout', { method: 'POST', credentials: 'include' });
+                    } catch (_) {}
+                    window.location.href = 'admin-login.html?lang=' + encodeURIComponent(currentLanguage);
+                });
+            });
+
+            try {
+                await loadCompareList();
+            } catch (_) {
+                showErr(t('notConnected'));
+            }
+        })();
+    </script>
+</body>
+</html>

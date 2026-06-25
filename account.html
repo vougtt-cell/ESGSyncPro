@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - ESG Survey</title>
+    <link rel="icon" type="image/x-icon" href="public/assets/images/favicon.ico">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            width: 100%;
+            max-width: 520px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 12px;
+        }
+        h1 { margin: 0; font-size: 1.3rem; color: #111827; }
+        .lang-switch { display: inline-flex; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 999px; padding: 3px; }
+        .lang-switch button {
+            border: none; background: transparent; color: #4b5563; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+        }
+        .lang-switch button.active { background: #93cd25; color: #fff; }
+        .subtitle { color: #6b7280; font-size: .95rem; margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 6px; color: #374151; font-size: .9rem; }
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            font-size: .95rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #95ce24;
+            box-shadow: 0 0 0 3px rgba(149, 206, 36, 0.2);
+        }
+        input.input-error {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+        }
+        .field-error {
+            min-height: 18px;
+            margin-top: 6px;
+            color: #dc2626;
+            font-size: 0.82rem;
+        }
+        .meta {
+            color: #6b7280;
+            font-size: .85rem;
+            margin-bottom: 14px;
+        }
+        .status {
+            min-height: 20px;
+            font-size: .9rem;
+            margin-bottom: 10px;
+        }
+        .status.success { color: #16a34a; }
+        .status.error { color: #dc2626; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: .95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary { background: #95ce24; color: #fff; }
+        .btn-primary:hover { background: #7fb01f; }
+        .btn-ghost { background: #e5e7eb; color: #374151; }
+        .btn-ghost:hover { background: #d1d5db; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; }
+        .back {
+            margin-top: 16px;
+            display: inline-block;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: .9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header-row">
+            <h1 id="title">My account</h1>
+            <div class="lang-switch">
+                <button type="button" id="lang-en">EN</button>
+                <button type="button" id="lang-pl">PL</button>
+            </div>
+        </div>
+        <div id="subtitle" class="subtitle">Manage your profile details.</div>
+        <div id="meta" class="meta"></div>
+        <form id="accountForm" novalidate>
+            <div class="form-group">
+                <label for="fullName" id="fullNameLabel">Full name</label>
+                <input id="fullName" name="fullName" type="text" autocomplete="name">
+                <div id="fullNameError" class="field-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="email" id="emailLabel">Email</label>
+                <input id="email" name="email" type="text" autocomplete="email" spellcheck="false">
+                <div id="emailError" class="field-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="companyName" id="companyLabel">Company</label>
+                <input id="companyName" name="companyName" type="text" autocomplete="organization">
+                <div id="companyNameError" class="field-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="newPassword" id="passwordLabel">New password (optional)</label>
+                <input id="newPassword" name="newPassword" type="password" autocomplete="new-password">
+                <div id="newPasswordError" class="field-error"></div>
+            </div>
+            <div id="status" class="status"></div>
+            <div class="btn-row">
+                <button type="submit" id="saveBtn" class="btn btn-primary">Save changes</button>
+                <button type="button" id="logoutBtn" class="btn btn-ghost">Logout</button>
+            </div>
+        </form>
+        <a href="index.html" id="backLink" class="back">← Back to home</a>
+    </div>
+
+    <script>
+        const TEXTS = {
+            en: {
+                title: 'My account',
+                pageTitle: 'Account - ESG Survey',
+                subtitle: 'Manage your profile details.',
+                fullName: 'Full name',
+                email: 'Email',
+                company: 'Company',
+                newPassword: 'New password (optional)',
+                save: 'Save changes',
+                logout: 'Logout',
+                back: '← Back to home',
+                profileCreated: 'Account created: ',
+                updatedAt: 'Updated: ',
+                saveSuccess: 'Profile updated successfully.',
+                saveError: 'Failed to update profile.',
+                loadError: 'Failed to load profile.',
+                emailRequired: 'Enter your email',
+                emailInvalid: 'Enter a valid email address',
+                fullNameRequired: 'Enter your full name',
+                passwordRule: 'Password must be at least 8 characters',
+                emailExists: 'An account with this email already exists'
+            },
+            pl: {
+                title: 'Moje konto',
+                pageTitle: 'Konto - Ankieta ESG',
+                subtitle: 'Zarządzaj danymi swojego profilu.',
+                fullName: 'Imię i nazwisko',
+                email: 'Email',
+                company: 'Firma',
+                newPassword: 'Nowe hasło (opcjonalnie)',
+                save: 'Zapisz zmiany',
+                logout: 'Wyloguj',
+                back: '← Powrót do strony głównej',
+                profileCreated: 'Konto utworzone: ',
+                updatedAt: 'Zaktualizowano: ',
+                saveSuccess: 'Profil został zaktualizowany.',
+                saveError: 'Nie udało się zaktualizować profilu.',
+                loadError: 'Nie udało się pobrać profilu.',
+                emailRequired: 'Wpisz adres email',
+                emailInvalid: 'Wpisz poprawny adres email',
+                fullNameRequired: 'Wpisz imię i nazwisko',
+                passwordRule: 'Hasło musi mieć minimum 8 znaków',
+                emailExists: 'Konto z tym adresem email już istnieje'
+            }
+        };
+
+        const SUPPORTED_LANGS = ['en', 'pl'];
+        const form = document.getElementById('accountForm');
+        const statusEl = document.getElementById('status');
+        const saveBtn = document.getElementById('saveBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        let profile = null;
+
+        function currentLang() {
+            const urlLang = new URLSearchParams(window.location.search).get('lang');
+            if (SUPPORTED_LANGS.includes(urlLang)) return urlLang;
+            const stored = localStorage.getItem('esgsyncp-language');
+            return SUPPORTED_LANGS.includes(stored) ? stored : 'en';
+        }
+
+        function toDateText(value, lang) {
+            if (!value) return '-';
+            try {
+                const locale = lang === 'pl' ? 'pl-PL' : 'en-GB';
+                return new Date(value).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
+            } catch (_) {
+                return value;
+            }
+        }
+
+        function clearFieldErrors() {
+            ['fullName', 'email', 'companyName', 'newPassword'].forEach((field) => {
+                const input = document.getElementById(field);
+                const error = document.getElementById(field + 'Error');
+                if (input) input.classList.remove('input-error');
+                if (error) error.textContent = '';
+            });
+        }
+
+        function setFieldError(field, message) {
+            const input = document.getElementById(field);
+            const error = document.getElementById(field + 'Error');
+            if (input) input.classList.add('input-error');
+            if (error) error.textContent = message || '';
+        }
+
+        function setStatus(message, type) {
+            statusEl.textContent = message || '';
+            statusEl.classList.remove('success', 'error');
+            if (type) statusEl.classList.add(type);
+        }
+
+        function getErrorTextByCode(code, lang) {
+            const t = TEXTS[lang] || TEXTS.en;
+            const map = {
+                EMAIL_REQUIRED: t.emailRequired,
+                EMAIL_INVALID: t.emailInvalid,
+                FULL_NAME_REQUIRED: t.fullNameRequired,
+                PASSWORD_TOO_SHORT: t.passwordRule,
+                EMAIL_EXISTS: t.emailExists,
+                PROFILE_UPDATE_FAILED: t.saveError,
+                PROFILE_FETCH_FAILED: t.loadError
+            };
+            return map[code] || t.saveError;
+        }
+
+        function renderMeta() {
+            const lang = currentLang();
+            const t = TEXTS[lang] || TEXTS.en;
+            if (!profile) {
+                document.getElementById('meta').textContent = '';
+                return;
+            }
+            const created = `${t.profileCreated}${toDateText(profile.createdAt, lang)}`;
+            const updated = `${t.updatedAt}${toDateText(profile.updatedAt, lang)}`;
+            document.getElementById('meta').textContent = `${created} | ${updated}`;
+        }
+
+        function applyTexts(lang) {
+            const t = TEXTS[lang] || TEXTS.en;
+            document.documentElement.lang = lang;
+            document.title = t.pageTitle;
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            document.getElementById('fullNameLabel').textContent = t.fullName;
+            document.getElementById('emailLabel').textContent = t.email;
+            document.getElementById('companyLabel').textContent = t.company;
+            document.getElementById('passwordLabel').textContent = t.newPassword;
+            document.getElementById('saveBtn').textContent = t.save;
+            document.getElementById('logoutBtn').textContent = t.logout;
+            document.getElementById('backLink').textContent = t.back;
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            document.getElementById('lang-pl').classList.toggle('active', lang === 'pl');
+            renderMeta();
+        }
+
+        function setLang(lang, replace = false) {
+            const safeLang = SUPPORTED_LANGS.includes(lang) ? lang : 'en';
+            localStorage.setItem('esgsyncp-language', safeLang);
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', safeLang);
+            if (replace) window.history.replaceState({}, '', url);
+            else window.history.pushState({}, '', url);
+            applyTexts(safeLang);
+        }
+
+        async function loadProfile() {
+            const lang = currentLang();
+            const t = TEXTS[lang] || TEXTS.en;
+            try {
+                const res = await fetch(window.location.origin + '/api/user/profile', {
+                    credentials: 'include'
+                });
+                if (res.status === 401) {
+                    window.location.href = 'user-login.html?lang=' + encodeURIComponent(lang) + '&returnTo=' + encodeURIComponent('account.html?lang=' + encodeURIComponent(lang));
+                    return;
+                }
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) throw new Error(data.errorCode || 'PROFILE_FETCH_FAILED');
+                profile = data;
+                document.getElementById('fullName').value = data.fullName || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('companyName').value = data.companyName || '';
+                renderMeta();
+            } catch (_) {
+                setStatus(t.loadError, 'error');
+            }
+        }
+
+        document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
+        document.getElementById('lang-pl').addEventListener('click', () => setLang('pl'));
+
+        logoutBtn.addEventListener('click', async () => {
+            const lang = currentLang();
+            try {
+                await fetch(window.location.origin + '/api/user/logout', { method: 'POST', credentials: 'include' });
+            } catch (_) {}
+            window.location.href = 'user-login.html?lang=' + encodeURIComponent(lang);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearFieldErrors();
+            setStatus('', '');
+            saveBtn.disabled = true;
+            const lang = currentLang();
+            const t = TEXTS[lang] || TEXTS.en;
+
+            const fullName = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const companyName = document.getElementById('companyName').value.trim();
+            const newPassword = document.getElementById('newPassword').value;
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!fullName) {
+                setFieldError('fullName', t.fullNameRequired);
+                saveBtn.disabled = false;
+                return;
+            }
+            if (!email) {
+                setFieldError('email', t.emailRequired);
+                saveBtn.disabled = false;
+                return;
+            }
+            if (!emailPattern.test(email)) {
+                setFieldError('email', t.emailInvalid);
+                saveBtn.disabled = false;
+                return;
+            }
+            if (newPassword && newPassword.length < 8) {
+                setFieldError('newPassword', t.passwordRule);
+                saveBtn.disabled = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(window.location.origin + '/api/user/profile', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ fullName, email, companyName, newPassword })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.ok) {
+                    const message = getErrorTextByCode(data.errorCode, lang);
+                    if (data.field) setFieldError(data.field, message);
+                    else setStatus(message, 'error');
+                    throw new Error(message);
+                }
+                document.getElementById('newPassword').value = '';
+                setStatus(t.saveSuccess, 'success');
+                await loadProfile();
+            } catch (err) {
+                if (!statusEl.textContent && !document.querySelector('.input-error')) {
+                    setStatus(err.message || t.saveError, 'error');
+                }
+            }
+            saveBtn.disabled = false;
+        });
+
+        setLang(currentLang(), true);
+        loadProfile();
+    </script>
+</body>
+</html>
