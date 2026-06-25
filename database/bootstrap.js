@@ -71,6 +71,8 @@ async function ensureArticlesTable() {
 
 async function bootstrapDatabase() {
     await ensureAppUsersTable();
+    await ensureAdminUsersTable();
+    await ensureUserDataTable();
     await ensureUserDataUserIdColumn();
     await ensureSurveyComparisonCompaniesTable();
     await ensureArticlesTable();
@@ -92,8 +94,46 @@ async function ensureAppUsersTable() {
     await query('CREATE INDEX IF NOT EXISTS idx_app_users_email ON app_users(email)');
 }
 
+async function ensureAdminUsersTable() {
+    await query(`
+        CREATE TABLE IF NOT EXISTS admin_users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(100) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(255),
+            email VARCHAR(255),
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await query('CREATE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)');
+}
+
+async function ensureUserDataTable() {
+    await query(`
+        CREATE TABLE IF NOT EXISTS user_data (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            session_id VARCHAR(255) UNIQUE,
+            company_name VARCHAR(255),
+            industry VARCHAR(100),
+            esg_level VARCHAR(20) CHECK (esg_level IN ('beginner', 'intermediate', 'advanced')),
+            language VARCHAR(10) DEFAULT 'en',
+            custom_data JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    await query('CREATE INDEX IF NOT EXISTS idx_user_data_session_id ON user_data(session_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_data_user_id ON user_data(user_id)');
+}
+
 module.exports = {
     bootstrapDatabase,
+    ensureAppUsersTable,
+    ensureAdminUsersTable,
+    ensureUserDataTable,
     ensureArticlesTable,
     ensureSurveyComparisonCompaniesTable
 };
